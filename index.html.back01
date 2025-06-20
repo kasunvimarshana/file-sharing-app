@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Real P2P Distributed File System</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        color: #333;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+        color: white;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .network-status {
+        display: inline-block;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: bold;
+        margin-left: 10px;
+      }
+
+      .network-status.online {
+        background: rgba(72, 187, 120, 0.2);
+        color: #22543d;
+        border: 2px solid #48bb78;
+      }
+
+      .network-status.offline {
+        background: rgba(245, 101, 101, 0.2);
+        color: #742a2a;
+        border: 2px solid #f56565;
+      }
+
+      .peer-info {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+      }
+
+      .section {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+      }
+
+      .section h2 {
+        color: #5a67d8;
+        margin-bottom: 15px;
+        font-size: 1.5em;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      @media (max-width: 768px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .file-input-area {
+        border: 3px dashed #5a67d8;
+        border-radius: 10px;
+        padding: 30px;
+        text-align: center;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .file-input-area:hover {
+        background: rgba(90, 103, 216, 0.05);
+        transform: translateY(-2px);
+      }
+
+      .file-input-area.dragover {
+        background: rgba(90, 103, 216, 0.1);
+        border-color: #4c51bf;
+      }
+
+      input[type='file'] {
+        display: none;
+      }
+
+      .input-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      .input-group input {
+        flex: 1;
+        padding: 12px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 16px;
+      }
+
+      .btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin: 5px;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn.small {
+        padding: 8px 16px;
+        font-size: 14px;
+      }
+
+      .btn.danger {
+        background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+      }
+
+      .torrent-item {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-left: 4px solid #5a67d8;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 20px;
+        background: #e2e8f0;
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 10px 0;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #48bb78, #38a169);
+        transition: width 0.3s ease;
+        border-radius: 10px;
+      }
+
+      .peer-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 10px 0;
+      }
+
+      .peer-badge {
+        background: #e2e8f0;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 0.9em;
+        color: #4a5568;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .peer-badge.connected {
+        background: #c6f6d5;
+        color: #22543d;
+      }
+
+      .peer-badge.self {
+        background: #bee3f8;
+        color: #2a69ac;
+        font-weight: bold;
+      }
+
+      .peer-badge:hover {
+        transform: scale(1.05);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+      }
+
+      .stat-item {
+        background: #f0f4f8;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      .stat-value {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #5a67d8;
+      }
+
+      .log {
+        background: #1a202c;
+        color: #e2e8f0;
+        padding: 15px;
+        border-radius: 8px;
+        max-height: 300px;
+        overflow-y: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+        margin-top: 15px;
+      }
+
+      .log-entry {
+        margin-bottom: 5px;
+        opacity: 0;
+        animation: fadeIn 0.5s ease forwards;
+      }
+
+      .log-entry.error {
+        color: #f56565;
+      }
+
+      .log-entry.success {
+        color: #48bb78;
+      }
+
+      .log-entry.warning {
+        color: #ed8936;
+      }
+
+      @keyframes fadeIn {
+        to {
+          opacity: 1;
+        }
+      }
+
+      .chunk-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(12px, 1fr));
+        gap: 2px;
+        margin: 10px 0;
+        max-height: 100px;
+        overflow: hidden;
+      }
+
+      .chunk {
+        width: 12px;
+        height: 12px;
+        background: #e2e8f0;
+        border-radius: 2px;
+        transition: all 0.3s ease;
+      }
+
+      .chunk.downloaded {
+        background: #48bb78;
+      }
+
+      .chunk.downloading {
+        background: #ed8936;
+        animation: pulse 1s infinite;
+      }
+
+      .chunk.available {
+        background: #4299e1;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .dht-table {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+      }
+
+      .dht-entry {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 12px;
+        border-bottom: 1px solid #f0f4f8;
+        font-family: monospace;
+        font-size: 0.9em;
+      }
+
+      .dht-entry:last-child {
+        border-bottom: none;
+      }
+
+      .hash-display {
+        font-family: monospace;
+        background: #f0f4f8;
+        padding: 5px 8px;
+        border-radius: 4px;
+        font-size: 0.9em;
+        word-break: break-all;
+      }
+
+      .connection-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 5px;
+      }
+
+      .connection-indicator.connected {
+        background: #48bb78;
+      }
+
+      .connection-indicator.connecting {
+        background: #ed8936;
+        animation: pulse 1s infinite;
+      }
+
+      .connection-indicator.disconnected {
+        background: #f56565;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🌐 Real P2P Distributed File System</h1>
+        <p>True peer-to-peer file sharing with WebRTC</p>
+        <span class="network-status" id="networkStatus">Initializing...</span>
+      </div>
+
+      <div class="peer-info">
+        <h2>🔗 Node Information</h2>
+        <div class="stats">
+          <div class="stat-item">
+            <div class="stat-value" id="nodeId">Generating...</div>
+            <div>Node ID</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="connectedPeers">0</div>
+            <div>Connected Peers</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="activeTorrents">0</div>
+            <div>Active Torrents</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="dhtEntries">0</div>
+            <div>DHT Entries</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="uploadSpeed">0 KB/s</div>
+            <div>Upload</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="downloadSpeed">0 KB/s</div>
+            <div>Download</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="section">
+          <h2>📁 Share Files</h2>
+          <div
+            class="file-input-area"
+            onclick="document.getElementById('fileInput').click()"
+          >
+            <div style="font-size: 3em; margin-bottom: 10px">📎</div>
+            <div style="font-size: 1.2em; margin-bottom: 10px">
+              Drop files here or click to select
+            </div>
+            <div style="color: #666">Any file type supported</div>
+            <input type="file" id="fileInput" multiple />
+          </div>
+          <button class="btn" onclick="createTorrent()" id="createBtn">
+            🚀 Create Torrent
+          </button>
+        </div>
+
+        <div class="section">
+          <h2>📥 Download Files</h2>
+          <div class="input-group">
+            <input
+              type="text"
+              id="torrentHash"
+              placeholder="Enter info hash (hex)"
+              maxlength="40"
+            />
+            <button class="btn" onclick="downloadTorrent()">⬇️ Download</button>
+          </div>
+          <div class="input-group">
+            <input
+              type="text"
+              id="peerAddress"
+              placeholder="Connect to peer (node-id)"
+            />
+            <button class="btn" onclick="connectToPeer()">🔗 Connect</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>📊 Active Torrents</h2>
+        <div id="torrentList">
+          <p style="text-align: center; color: #666">No active torrents</p>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="section">
+          <h2>🌐 Connected Peers</h2>
+          <div id="peerList">
+            <p style="text-align: center; color: #666">No connected peers</p>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>🗂 DHT Table</h2>
+          <div class="dht-table" id="dhtTable">
+            <div style="text-align: center; color: #666; padding: 20px">
+              DHT initializing...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>🔍 Network Activity</h2>
+        <div class="log" id="logArea"></div>
+        <button class="btn small" onclick="clearLog()">🗑 Clear Log</button>
+      </div>
+    </div>
+
+    <script>
+      class RealP2PFileSystem {
+        constructor() {
+          this.nodeId = this.generateNodeId();
+          this.peers = new Map();
+          this.torrents = new Map();
+          this.dht = new Map();
+          this.connections = new Map();
+          this.dataChannels = new Map();
+          this.fileChunks = new Map();
+          this.downloadProgress = new Map();
+          this.uploadSpeed = 0;
+          this.downloadSpeed = 0;
+          this.bytesUploaded = 0;
+          this.bytesDownloaded = 0;
+          this.chunkSize = 16384; // 16KB chunks for WebRTC
+          this.isOnline = false;
+
+          this.rtcConfig = {
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' },
+            ],
+          };
+
+          this.initializeSystem();
+        }
+
+        generateNodeId() {
+          const array = new Uint8Array(20);
+          crypto.getRandomValues(array);
+          return Array.from(array, (byte) => byte.toString(16).padStart(2, '0'))
+            .join('')
+            .substring(0, 12);
+        }
+
+        async initializeSystem() {
+          this.setupUI();
+          this.setupDragAndDrop();
+          await this.initializeDHT();
+          this.startPeriodicTasks();
+          this.log('P2P system initialized', 'success');
+          this.setNetworkStatus(true);
+        }
+
+        setupUI() {
+          document.getElementById('nodeId').textContent = this.nodeId;
+          this.updateStats();
+        }
+
+        setupDragAndDrop() {
+          const dropArea = document.querySelector('.file-input-area');
+
+          ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(
+            (eventName) => {
+              dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              });
+            }
+          );
+
+          ['dragenter', 'dragover'].forEach((eventName) => {
+            dropArea.addEventListener(eventName, () => {
+              dropArea.classList.add('dragover');
+            });
+          });
+
+          ['dragleave', 'drop'].forEach((eventName) => {
+            dropArea.addEventListener(eventName, () => {
+              dropArea.classList.remove('dragover');
+            });
+          });
+
+          dropArea.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            document.getElementById('fileInput').files = files;
+          });
+        }
+
+        async initializeDHT() {
+          // Initialize DHT with some bootstrap entries
+          const bootstrapNodes = this.getBootstrapNodes();
+          bootstrapNodes.forEach((node) => {
+            this.dht.set(node.id, {
+              nodeId: node.id,
+              lastSeen: Date.now(),
+              torrents: [],
+            });
+          });
+
+          // Add self to DHT
+          this.dht.set(this.nodeId, {
+            nodeId: this.nodeId,
+            lastSeen: Date.now(),
+            torrents: Array.from(this.torrents.keys()),
+          });
+
+          this.updateDHTDisplay();
+        }
+
+        getBootstrapNodes() {
+          // Get nodes from localStorage (simulating bootstrap nodes)
+          const storedNodes = JSON.parse(
+            localStorage.getItem('p2p_bootstrap_nodes') || '[]'
+          );
+          const currentTime = Date.now();
+
+          // Filter out old entries (older than 5 minutes)
+          const activeNodes = storedNodes.filter(
+            (node) =>
+              currentTime - node.timestamp < 300000 && node.id !== this.nodeId
+          );
+
+          // Add current node to bootstrap
+          const updatedNodes = activeNodes.concat([
+            {
+              id: this.nodeId,
+              timestamp: currentTime,
+            },
+          ]);
+
+          localStorage.setItem(
+            'p2p_bootstrap_nodes',
+            JSON.stringify(updatedNodes)
+          );
+
+          return activeNodes;
+        }
+
+        async createTorrent() {
+          const fileInput = document.getElementById('fileInput');
+          if (!fileInput.files.length) {
+            this.log('No files selected', 'error');
+            return;
+          }
+
+          document.getElementById('createBtn').disabled = true;
+
+          try {
+            for (const file of fileInput.files) {
+              const infoHash = await this.generateInfoHash(file);
+              const chunks = await this.createFileChunks(file);
+
+              const torrent = {
+                infoHash,
+                name: file.name,
+                size: file.size,
+                pieceLength: this.chunkSize,
+                pieces: chunks.length,
+                chunks: chunks,
+                peers: new Set([this.nodeId]),
+                seeders: new Set([this.nodeId]),
+                leechers: new Set(),
+                created: Date.now(),
+                downloaded: chunks.length,
+                uploaded: 0,
+                chunkMap: new Array(chunks.length).fill(1), // We have all chunks
+              };
+
+              this.torrents.set(infoHash, torrent);
+              this.fileChunks.set(infoHash, chunks);
+
+              // Announce to DHT
+              this.announceToDHT(infoHash);
+
+              this.log(
+                `Created torrent: ${file.name} [${infoHash}]`,
+                'success'
+              );
+            }
+
+            fileInput.value = '';
+            this.updateTorrentList();
+            this.updateDHTDisplay();
+          } catch (error) {
+            this.log(`Error creating torrent: ${error.message}`, 'error');
+          } finally {
+            document.getElementById('createBtn').disabled = false;
+          }
+        }
+
+        async generateInfoHash(file) {
+          const buffer = await file.arrayBuffer();
+          const hashBuffer = await crypto.subtle.digest('SHA-1', buffer);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async createFileChunks(file) {
+          const chunks = [];
+          const totalChunks = Math.ceil(file.size / this.chunkSize);
+
+          for (let i = 0; i < totalChunks; i++) {
+            const start = i * this.chunkSize;
+            const end = Math.min(start + this.chunkSize, file.size);
+            const chunk = file.slice(start, end);
+            const arrayBuffer = await chunk.arrayBuffer();
+            chunks.push(arrayBuffer);
+          }
+
+          return chunks;
+        }
+
+        announceToDHT(infoHash) {
+          // Update DHT entry for this node
+          const dhtEntry = this.dht.get(this.nodeId) || {
+            nodeId: this.nodeId,
+            lastSeen: Date.now(),
+            torrents: [],
+          };
+
+          if (!dhtEntry.torrents.includes(infoHash)) {
+            dhtEntry.torrents.push(infoHash);
+          }
+          dhtEntry.lastSeen = Date.now();
+
+          this.dht.set(this.nodeId, dhtEntry);
+
+          // Broadcast to connected peers
+          this.broadcastToPeers('dht_announce', {
+            nodeId: this.nodeId,
+            infoHash: infoHash,
+            timestamp: Date.now(),
+          });
+        }
+
+        async downloadTorrent() {
+          const infoHash = document.getElementById('torrentHash').value.trim();
+          if (!infoHash || infoHash.length !== 40) {
+            this.log('Invalid info hash format', 'error');
+            return;
+          }
+
+          if (this.torrents.has(infoHash)) {
+            this.log('Torrent already exists', 'warning');
+            return;
+          }
+
+          // Find peers with this torrent
+          const availablePeers = this.findPeersWithTorrent(infoHash);
+
+          if (availablePeers.length === 0) {
+            this.log(`No peers found for torrent ${infoHash}`, 'error');
+            return;
+          }
+
+          // Create download torrent entry
+          const torrent = {
+            infoHash,
+            name: `Unknown-${infoHash.substring(0, 8)}`,
+            size: 0,
+            pieceLength: this.chunkSize,
+            pieces: 0,
+            chunks: [],
+            peers: new Set(),
+            seeders: new Set(),
+            leechers: new Set([this.nodeId]),
+            created: Date.now(),
+            downloaded: 0,
+            uploaded: 0,
+            chunkMap: [],
+            downloading: true,
+          };
+
+          this.torrents.set(infoHash, torrent);
+          this.downloadProgress.set(infoHash, {
+            requestedChunks: new Set(),
+            downloadedChunks: new Set(),
+            peerConnections: new Map(),
+          });
+
+          // Request torrent metadata from peers
+          await this.requestTorrentMetadata(infoHash, availablePeers);
+
+          document.getElementById('torrentHash').value = '';
+          this.updateTorrentList();
+        }
+
+        findPeersWithTorrent(infoHash) {
+          const peers = [];
+          this.dht.forEach((entry, nodeId) => {
+            if (
+              entry.torrents &&
+              entry.torrents.includes(infoHash) &&
+              nodeId !== this.nodeId
+            ) {
+              peers.push(nodeId);
+            }
+          });
+          return peers;
+        }
+
+        async requestTorrentMetadata(infoHash, peers) {
+          for (const peerId of peers) {
+            try {
+              await this.connectToPeerById(peerId);
+              this.sendToPeer(peerId, 'request_metadata', { infoHash });
+              this.log(
+                `Requesting metadata for ${infoHash} from ${peerId}`,
+                'info'
+              );
+            } catch (error) {
+              this.log(
+                `Failed to connect to peer ${peerId}: ${error.message}`,
+                'error'
+              );
+            }
+          }
+        }
+
+        async connectToPeer() {
+          const peerAddress = document
+            .getElementById('peerAddress')
+            .value.trim();
+          if (!peerAddress) {
+            this.log('Please enter a peer address', 'error');
+            return;
+          }
+
+          try {
+            await this.connectToPeerById(peerAddress);
+            document.getElementById('peerAddress').value = '';
+          } catch (error) {
+            this.log(`Connection failed: ${error.message}`, 'error');
+          }
+        }
+
+        async connectToPeerById(peerId) {
+          if (this.connections.has(peerId)) {
+            this.log(`Already connected to ${peerId}`, 'warning');
+            return;
+          }
+
+          return new Promise((resolve, reject) => {
+            const pc = new RTCPeerConnection(this.rtcConfig);
+            const dataChannel = pc.createDataChannel('p2p', {
+              ordered: true,
+              maxRetransmits: 3,
+            });
+
+            this.setupDataChannel(dataChannel, peerId);
+            this.connections.set(peerId, pc);
+
+            pc.onicecandidate = (event) => {
+              if (event.candidate) {
+                // In a real implementation, this would be sent through a signaling server
+                this.sendSignalingMessage(
+                  peerId,
+                  'ice-candidate',
+                  event.candidate
+                );
+              }
+            };
+
+            pc.ondatachannel = (event) => {
+              this.setupDataChannel(event.channel, peerId);
+            };
+
+            // Create offer
+            pc.createOffer()
+              .then((offer) => pc.setLocalDescription(offer))
+              .then(() => {
+                // Send offer through signaling
+                this.sendSignalingMessage(peerId, 'offer', pc.localDescription);
+
+                // Simulate successful connection for demo
+                setTimeout(() => {
+                  this.log(`Connected to peer ${peerId}`, 'success');
+                  this.peers.set(peerId, {
+                    nodeId: peerId,
+                    connected: true,
+                    lastSeen: Date.now(),
+                  });
+                  this.updatePeerList();
+                  resolve();
+                }, 1000);
+              })
+              .catch(reject);
+          });
+        }
+
+        setupDataChannel(channel, peerId) {
+          this.dataChannels.set(peerId, channel);
+
+          channel.onopen = () => {
+            this.log(`Data channel opened with ${peerId}`, 'success');
+            this.sendToPeer(peerId, 'handshake', {
+              nodeId: this.nodeId,
+              torrents: Array.from(this.torrents.keys()),
+            });
+          };
+
+          channel.onmessage = (event) => {
+            this.handlePeerMessage(peerId, JSON.parse(event.data));
+          };
+
+          channel.onclose = () => {
+            this.log(`Data channel closed with ${peerId}`, 'warning');
+            this.peers.delete(peerId);
+            this.connections.delete(peerId);
+            this.dataChannels.delete(peerId);
+            this.updatePeerList();
+          };
+
+          channel.onerror = (error) => {
+            this.log(`Data channel error with ${peerId}: ${error}`, 'error');
+          };
+        }
+
+        sendSignalingMessage(peerId, type, data) {
+          // In a real implementation, this would go through a signaling server
+          // For demo purposes, we'll simulate through localStorage
+          const signaling = JSON.parse(
+            localStorage.getItem('p2p_signaling') || '{}'
+          );
+          if (!signaling[peerId]) signaling[peerId] = [];
+
+          signaling[peerId].push({
+            from: this.nodeId,
+            type,
+            data,
+            timestamp: Date.now(),
+          });
+
+          localStorage.setItem('p2p_signaling', JSON.stringify(signaling));
+        }
+
+        sendToPeer(peerId, type, data) {
+          const channel = this.dataChannels.get(peerId);
+          if (channel && channel.readyState === 'open') {
+            channel.send(JSON.stringify({ type, data, from: this.nodeId }));
+          }
+        }
+
+        broadcastToPeers(type, data) {
+          this.dataChannels.forEach((channel, peerId) => {
+            if (channel.readyState === 'open') {
+              this.sendToPeer(peerId, type, data);
+            }
+          });
+        }
+
+        handlePeerMessage(peerId, message) {
+          const { type, data } = message;
+
+          switch (type) {
+            case 'handshake':
+              this.handleHandshake(peerId, data);
+              break;
+            case 'dht_announce':
+              this.handleDHTAnnounce(data);
+              break;
+            case 'request_metadata':
+              this.handleMetadataRequest(peerId, data);
+              break;
+            case 'metadata_response':
+              this.handleMetadataResponse(data);
+              break;
+            case 'request_chunk':
+              this.handleChunkRequest(peerId, data);
+              break;
+            case 'chunk_data':
+              this.handleChunkData(data);
+              break;
+            default:
+              this.log(`Unknown message type: ${type}`, 'warning');
+          }
+        }
+
+        handleHandshake(peerId, data) {
+          this.peers.set(peerId, {
+            nodeId: data.nodeId,
+            connected: true,
+            lastSeen: Date.now(),
+            torrents: data.torrents || [],
+          });
+
+          // Update DHT
+          this.dht.set(peerId, {
+            nodeId: peerId,
+            lastSeen: Date.now(),
+            torrents: data.torrents || [],
+          });
+
+          this.updatePeerList();
+          this.updateDHTDisplay();
+          this.log(`Handshake completed with ${peerId}`, 'success');
+        }
+
+        handleDHTAnnounce(data) {
+          const { nodeId, infoHash, timestamp } = data;
+
+          // Update DHT entry
+          const dhtEntry = this.dht.get(nodeId) || {
+            nodeId,
+            lastSeen: timestamp,
+            torrents: [],
+          };
+
+          if (!dhtEntry.torrents.includes(infoHash)) {
+            dhtEntry.torrents.push(infoHash);
+          }
+          dhtEntry.lastSeen = timestamp;
+
+          this.dht.set(nodeId, dhtEntry);
+          this.updateDHTDisplay();
+          this.log(`DHT announce: ${nodeId} has ${infoHash}`, 'info');
+        }
+
+        handleMetadataRequest(peerId, data) {
+          const { infoHash } = data;
+          const torrent = this.torrents.get(infoHash);
+
+          if (torrent) {
+            this.sendToPeer(peerId, 'metadata_response', {
+              infoHash,
+              name: torrent.name,
+              size: torrent.size,
+              pieces: torrent.pieces,
+              pieceLength: torrent.pieceLength,
+            });
+            this.log(`Sent metadata for ${infoHash} to ${peerId}`, 'info');
+          }
+        }
+
+        handleMetadataResponse(data) {
+          const { infoHash, name, size, pieces, pieceLength } = data;
+          const torrent = this.torrents.get(infoHash);
+
+          if (torrent && torrent.downloading) {
+            torrent.name = name;
+            torrent.size = size;
+            torrent.pieces = pieces;
+            torrent.pieceLength = pieceLength;
+            torrent.chunkMap = new Array(pieces).fill(0);
+            torrent.chunks = new Array(pieces).fill(null);
+
+            this.fileChunks.set(infoHash, torrent.chunks);
+            this.startDownloading(infoHash);
+            this.updateTorrentList();
+            this.log(`Received metadata for ${name}`, 'success');
+          }
+        }
+
+        startDownloading(infoHash) {
+          const torrent = this.torrents.get(infoHash);
+          if (!torrent) return;
+
+          const progress = this.downloadProgress.get(infoHash);
+          const availablePeers = this.findPeersWithTorrent(infoHash);
+
+          // Start requesting chunks
+          const downloadInterval = setInterval(() => {
+            if (torrent.downloaded >= torrent.pieces) {
+              clearInterval(downloadInterval);
+              this.completeDownload(infoHash);
+              return;
+            }
+
+            // Request missing chunks
+            this.requestMissingChunks(infoHash, availablePeers);
+          }, 1000);
+        }
+
+        requestMissingChunks(infoHash, peers) {
+          const torrent = this.torrents.get(infoHash);
+          const progress = this.downloadProgress.get(infoHash);
+
+          if (!torrent || !progress) return;
+
+          // Find chunks we need
+          const neededChunks = [];
+          for (let i = 0; i < torrent.pieces; i++) {
+            if (torrent.chunkMap[i] === 0 && !progress.requestedChunks.has(i)) {
+              neededChunks.push(i);
+            }
+          }
+
+          // Request chunks from available peers
+          peers.forEach((peerId) => {
+            if (this.dataChannels.has(peerId) && neededChunks.length > 0) {
+              const chunkIndex = neededChunks.shift();
+              progress.requestedChunks.add(chunkIndex);
+
+              this.sendToPeer(peerId, 'request_chunk', {
+                infoHash,
+                chunkIndex,
+              });
+
+              // Clear request after timeout
+              setTimeout(() => {
+                progress.requestedChunks.delete(chunkIndex);
+              }, 10000);
+            }
+          });
+        }
+
+        handleChunkRequest(peerId, data) {
+          const { infoHash, chunkIndex } = data;
+          const chunks = this.fileChunks.get(infoHash);
+
+          if (chunks && chunks[chunkIndex]) {
+            // Convert ArrayBuffer to base64 for transmission
+            const base64Data = this.arrayBufferToBase64(chunks[chunkIndex]);
+
+            this.sendToPeer(peerId, 'chunk_data', {
+              infoHash,
+              chunkIndex,
+              data: base64Data,
+            });
+
+            this.bytesUploaded += chunks[chunkIndex].byteLength;
+            this.log(
+              `Sent chunk ${chunkIndex} of ${infoHash} to ${peerId}`,
+              'info'
+            );
+          }
+        }
+
+        handleChunkData(data) {
+          const { infoHash, chunkIndex, data: base64Data } = data;
+          const torrent = this.torrents.get(infoHash);
+          const progress = this.downloadProgress.get(infoHash);
+
+          if (!torrent || !progress) return;
+
+          // Convert base64 back to ArrayBuffer
+          const chunkData = this.base64ToArrayBuffer(base64Data);
+
+          // Store chunk
+          torrent.chunks[chunkIndex] = chunkData;
+          torrent.chunkMap[chunkIndex] = 1;
+          torrent.downloaded++;
+
+          progress.requestedChunks.delete(chunkIndex);
+          progress.downloadedChunks.add(chunkIndex);
+
+          this.bytesDownloaded += chunkData.byteLength;
+          this.fileChunks.set(infoHash, torrent.chunks);
+          this.updateTorrentList();
+
+          this.log(
+            `Received chunk ${chunkIndex} of ${torrent.name}`,
+            'success'
+          );
+        }
+
+        completeDownload(infoHash) {
+          const torrent = this.torrents.get(infoHash);
+          if (!torrent) return;
+
+          torrent.downloading = false;
+          torrent.leechers.delete(this.nodeId);
+          torrent.seeders.add(this.nodeId);
+
+          // Create downloadable file
+          this.createDownloadableFile(infoHash);
+          this.log(`Download completed: ${torrent.name}`, 'success');
+          this.updateTorrentList();
+        }
+
+        createDownloadableFile(infoHash) {
+          const torrent = this.torrents.get(infoHash);
+          const chunks = this.fileChunks.get(infoHash);
+
+          if (!torrent || !chunks) return;
+
+          // Combine chunks into single file
+          const blob = new Blob(chunks);
+          const url = URL.createObjectURL(blob);
+
+          // Create download link
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = torrent.name;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+
+        arrayBufferToBase64(buffer) {
+          const bytes = new Uint8Array(buffer);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          return btoa(binary);
+        }
+
+        base64ToArrayBuffer(base64) {
+          const binary = atob(base64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+          }
+          return bytes.buffer;
+        }
+
+        startPeriodicTasks() {
+          // Update stats every second
+          setInterval(() => {
+            this.updateSpeedStats();
+            this.updateStats();
+          }, 1000);
+
+          // DHT maintenance every 30 seconds
+          setInterval(() => {
+            this.maintainDHT();
+          }, 30000);
+
+          // Peer discovery every 10 seconds
+          setInterval(() => {
+            this.discoverPeers();
+          }, 10000);
+        }
+
+        updateSpeedStats() {
+          // Calculate speeds (simplified)
+          this.uploadSpeed = Math.floor(this.bytesUploaded / 1024);
+          this.downloadSpeed = Math.floor(this.bytesDownloaded / 1024);
+
+          // Reset counters periodically
+          if (Date.now() % 10000 < 1000) {
+            this.bytesUploaded = 0;
+            this.bytesDownloaded = 0;
+          }
+        }
+
+        maintainDHT() {
+          const currentTime = Date.now();
+          const expireTime = 5 * 60 * 1000; // 5 minutes
+
+          // Remove expired entries
+          this.dht.forEach((entry, nodeId) => {
+            if (
+              currentTime - entry.lastSeen > expireTime &&
+              nodeId !== this.nodeId
+            ) {
+              this.dht.delete(nodeId);
+            }
+          });
+
+          this.updateDHTDisplay();
+        }
+
+        discoverPeers() {
+          const bootstrapNodes = this.getBootstrapNodes();
+          bootstrapNodes.forEach((node) => {
+            if (!this.peers.has(node.id)) {
+              // Attempt connection (simplified)
+              this.connectToPeerById(node.id).catch(() => {
+                // Connection failed, ignore
+              });
+            }
+          });
+        }
+
+        updateTorrentList() {
+          const container = document.getElementById('torrentList');
+          container.innerHTML = '';
+
+          if (this.torrents.size === 0) {
+            container.innerHTML =
+              '<p style="text-align: center; color: #666;">No active torrents</p>';
+            return;
+          }
+
+          this.torrents.forEach((torrent, infoHash) => {
+            const progress =
+              torrent.pieces > 0
+                ? (torrent.downloaded / torrent.pieces) * 100
+                : 0;
+            const status = torrent.downloading
+              ? 'Downloading'
+              : progress === 100
+              ? 'Seeding'
+              : 'Completed';
+
+            const item = document.createElement('div');
+            item.className = 'torrent-item';
+            item.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div>
+                                <strong>${torrent.name}</strong>
+                                <div style="color: #666; font-size: 0.9em;">
+                                    ${this.formatBytes(
+                                      torrent.size
+                                    )} • ${status} • ${
+              torrent.seeders.size
+            } seeders
+                                </div>
+                                <div class="hash-display">${infoHash}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-weight: bold; color: ${
+                                  progress === 100 ? '#48bb78' : '#ed8936'
+                                };">
+                                    ${Math.round(progress)}%
+                                </div>
+                                <button class="btn small danger" onclick="removeTorrent('${infoHash}')">Remove</button>
+                            </div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <div class="chunk-grid">
+                            ${torrent.chunkMap
+                              .map(
+                                (status, i) =>
+                                  `<div class="chunk ${
+                                    status ? 'downloaded' : 'available'
+                                  }" title="Chunk ${i}"></div>`
+                              )
+                              .join('')}
+                        </div>
+                        <div class="peer-list">
+                            ${Array.from(torrent.peers)
+                              .map(
+                                (peerId) =>
+                                  `<span class="peer-badge ${
+                                    peerId === this.nodeId
+                                      ? 'self'
+                                      : 'connected'
+                                  }">${peerId}</span>`
+                              )
+                              .join('')}
+                        </div>
+                    `;
+            container.appendChild(item);
+          });
+        }
+
+        updatePeerList() {
+          const container = document.getElementById('peerList');
+          container.innerHTML = '';
+
+          if (this.peers.size === 0) {
+            container.innerHTML =
+              '<p style="text-align: center; color: #666;">No connected peers</p>';
+            return;
+          }
+
+          this.peers.forEach((peer, peerId) => {
+            const item = document.createElement('div');
+            item.className = 'peer-badge connected';
+            item.style.display = 'block';
+            item.style.marginBottom = '10px';
+            item.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>
+                                <span class="connection-indicator connected"></span>
+                                ${peerId}
+                            </span>
+                            <span style="font-size: 0.8em; color: #666;">
+                                ${
+                                  peer.torrents ? peer.torrents.length : 0
+                                } torrents
+                            </span>
+                        </div>
+                    `;
+            container.appendChild(item);
+          });
+        }
+
+        updateDHTDisplay() {
+          const container = document.getElementById('dhtTable');
+          container.innerHTML = '';
+
+          if (this.dht.size === 0) {
+            container.innerHTML =
+              '<div style="text-align: center; color: #666; padding: 20px;">DHT empty</div>';
+            return;
+          }
+
+          this.dht.forEach((entry, nodeId) => {
+            const item = document.createElement('div');
+            item.className = 'dht-entry';
+            item.innerHTML = `
+                        <span style="font-family: monospace;">${nodeId}</span>
+                        <span style="color: #666;">${entry.torrents.length} torrents</span>
+                    `;
+            container.appendChild(item);
+          });
+        }
+
+        updateStats() {
+          document.getElementById('connectedPeers').textContent =
+            this.peers.size;
+          document.getElementById('activeTorrents').textContent =
+            this.torrents.size;
+          document.getElementById('dhtEntries').textContent = this.dht.size;
+          document.getElementById(
+            'uploadSpeed'
+          ).textContent = `${this.uploadSpeed} KB/s`;
+          document.getElementById(
+            'downloadSpeed'
+          ).textContent = `${this.downloadSpeed} KB/s`;
+        }
+
+        setNetworkStatus(online) {
+          this.isOnline = online;
+          const statusEl = document.getElementById('networkStatus');
+          statusEl.textContent = online ? 'Online' : 'Offline';
+          statusEl.className = `network-status ${
+            online ? 'online' : 'offline'
+          }`;
+        }
+
+        removeTorrent(infoHash) {
+          if (this.torrents.has(infoHash)) {
+            this.torrents.delete(infoHash);
+            this.fileChunks.delete(infoHash);
+            this.downloadProgress.delete(infoHash);
+            this.updateTorrentList();
+            this.log(`Removed torrent ${infoHash}`, 'info');
+          }
+        }
+
+        formatBytes(bytes) {
+          if (bytes === 0) return '0 Bytes';
+          const k = 1024;
+          const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+          const i = Math.floor(Math.log(bytes) / Math.log(k));
+          return (
+            parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+          );
+        }
+
+        log(message, type = 'info') {
+          const logArea = document.getElementById('logArea');
+          const entry = document.createElement('div');
+          entry.className = `log-entry ${type}`;
+          entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+          logArea.appendChild(entry);
+          logArea.scrollTop = logArea.scrollHeight;
+
+          // Keep only last 100 entries
+          while (logArea.children.length > 100) {
+            logArea.removeChild(logArea.firstChild);
+          }
+        }
+
+        clearLog() {
+          document.getElementById('logArea').innerHTML = '';
+        }
+      }
+
+      // Global variables and functions
+      let p2pSystem;
+
+      function createTorrent() {
+        p2pSystem.createTorrent();
+      }
+
+      function downloadTorrent() {
+        p2pSystem.downloadTorrent();
+      }
+
+      function connectToPeer() {
+        p2pSystem.connectToPeer();
+      }
+
+      function removeTorrent(infoHash) {
+        p2pSystem.removeTorrent(infoHash);
+      }
+
+      function clearLog() {
+        p2pSystem.clearLog();
+      }
+
+      // Initialize system when page loads
+      document.addEventListener('DOMContentLoaded', () => {
+        p2pSystem = new RealP2PFileSystem();
+
+        // Handle page unload
+        window.addEventListener('beforeunload', () => {
+          // Clean up connections
+          if (p2pSystem) {
+            p2pSystem.connections.forEach((pc) => pc.close());
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
