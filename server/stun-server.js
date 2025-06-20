@@ -1,116 +1,73 @@
 import dgram from 'dgram';
-import { logger } from './logger.js';
-import { config } from './config.js';
+import crypto from 'crypto';
 
 export class STUNServer {
   constructor() {
     this.socket = null;
-    this.bindingResponses = new Map();
-    this.stats = {
-      requestsReceived: 0,
-      responsesSet: 0,
-      errors: 0
+    this.STUN_MAGIC_COOKIE = 0x2112A442;
+    this.STUN_MESSAGE_TYPES = {
+      BINDING_REQUEST: 0x0001,
+      BINDING_RESPONSE: 0x0101,
+      BINDING_ERROR_RESPONSE: 0x0111
+    };
+    this.STUN_ATTRIBUTES = {
+      MAPPED_ADDRESS: 0x0001,
+      XOR_MAPPED_ADDRESS: 0x0020,
+      SOFTWARE: 0x8022,
+      FINGERPRINT: 0x8028
     };
   }
 
-  start(port) {
-    try {
-      this.socket = dgram.createSocket('udp4');
-      
-      this.socket.bind(port);
-      
-      this.socket.on('message', (msg, rinfo) => {
-        this.handleSTUNMessage(msg, rinfo);
-      });
+  start(port = 3478) {
+    this.socket = dgram.createSocket('udp4');
 
-      this.socket.on('listening', () => {
-        const address = this.socket.address();
-        logger.info(`STUN server listening on ${address.address}:${address.port}`);
-      });
+    this.socket.on('message', (msg, rinfo) => {
+      this.handleMessage(msg, rinfo);
+    });
 
-      this.socket.on('error', (err) => {
-        logger.error('STUN server error:', err);
-        this.stats.errors++;
-      });
+    this.socket.on('error', (err) => {
+      console.error('STUN server error:', err);
+    });
 
-      this.socket.on('close', () => {
-        logger.info('STUN server closed');
-      });
-
-      // Periodic stats logging
-      setInterval(() => {
-        if (this.stats.requestsReceived > 0) {
-          logger.debug('STUN server stats:', this.stats);
-        }
-      }, 60000); // Every minute
-
-    } catch (error) {
-      logger.error('Failed to start STUN server:', error);
-      throw error;
-    }
+    this.socket.bind(port, () => {
+      console.log(`STUN server listening on port ${port}`);
+    });
   }
 
-  handleSTUNMessage(message, rinfo) {
+  handleMessage(msg, rinfo) {
     try {
-      this.stats.requestsReceived++;
+      const stunMessage = this.parseSTUNMessage(msg);
       
-      if (message.length < 20) {
-        logger.warn(`STUN message too short: ${message.length} bytes from ${rinfo.address}:${rinfo.port}`);
-        return;
-      }
-
-      const stunMessage = this.parseSTUNMessage(message);
-      
-      if (stunMessage.messageType === 0x0001) { // Binding Request
+      if (stunMessage.type === this.STUN_MESSAGE_TYPES.BINDING_REQUEST) {
         const response = this.createBindingResponse(stunMessage, rinfo);
-        if (response) {
-          this.socket.send(response, rinfo.port, rinfo.address, (err) => {
-            if (err) {
-              logger.error(`Failed to send STUN response to ${rinfo.address}:${rinfo.port}:`, err);
-              this.stats.errors++;
-            } else {
-              this.stats.responsesSet++;
-              logger.debug(`STUN binding response sent to ${rinfo.address}:${rinfo.port}`);
-            }
-          });
-        }
-      } else {
-        logger.debug(`Unsupported STUN message type: 0x${stunMessage.messageType.toString(16)} from ${rinfo.address}:${rinfo.port}`);
+        this.socket.send(response, rinfo.port, rinfo.address);
       }
     } catch (error) {
-      logger.error(`Error handling STUN message from ${rinfo.address}:${rinfo.port}:`, error);
-      this.stats.errors++;
+      console.error('Failed to handle STUN message:', error);
     }
   }
 
   parseSTUNMessage(buffer) {
-    try {
-      const messageType = buffer.readUInt16BE(0);
-      const messageLength = buffer.readUInt16BE(2);
-      const magicCookie = buffer.readUInt32BE(4);
-      const transactionId = buffer.subarray(8, 20);
-
-      // Validate magic cookie
-      if (magicCookie !== 0x2112A442) {
-        throw new Error(`Invalid magic cookie: 0x${magicCookie.toString(16)}`);
-      }
-
-      // Validate message length
-      if (messageLength !== buffer.length - 20) {
-        throw new Error(`Message length mismatch: expected ${messageLength}, got ${buffer.length - 20}`);
-      }
-
-      return {
-        messageType,
-        messageLength,
-        magicCookie,
-        transactionId,
-        attributes: this.parseAttributes(buffer.subarray(20))
-      };
-    } catch (error) {
-      logger.error('Error parsing STUN message:', error);
-      throw error;
+    if (buffer.length < 20) {
+      throw new Error('Invalid STUN message length');
     }
+
+    const type = buffer.readUInt16BE(0);
+    const length = buffer.readUInt16BE(2);
+    const magicCookie = buffer.readUInt32BE(4);
+    const transactionId = buffer.slice(8, 20);
+
+    if (magicCookie !== this.STUN_MAGIC_COOKIE) {
+      throw new Error('Invalid STUN magic cookie');
+    }
+
+    return {
+      type,
+      length,
+      magicCookie,
+      transactionId,
+      attributes: this.parseAttributes(buffer.slice(20))
+    };
   }
 
   parseAttributes(buffer) {
@@ -118,83 +75,86 @@ export class STUNServer {
     let offset = 0;
 
     while (offset < buffer.length) {
-      if (offset + 4 > buffer.length) {
-        logger.warn('Incomplete attribute header');
-        break;
-      }
+      if (offset + 4 > buffer.length) break;
 
       const type = buffer.readUInt16BE(offset);
       const length = buffer.readUInt16BE(offset + 2);
-      
-      if (offset + 4 + length > buffer.length) {
-        logger.warn(`Incomplete attribute: type=${type}, length=${length}`);
-        break;
-      }
+      const value = buffer.slice(offset + 4, offset + 4 + length);
 
-      const value = buffer.subarray(offset + 4, offset + 4 + length);
-      
       attributes.push({ type, length, value });
-      
-      // Move to next attribute (with padding)
-      const paddedLength = Math.ceil(length / 4) * 4;
-      offset += 4 + paddedLength;
+      offset += 4 + length + (length % 4 === 0 ? 0 : 4 - (length % 4)); // Padding
     }
 
     return attributes;
   }
 
   createBindingResponse(request, rinfo) {
-    try {
-      const responseBuffer = Buffer.alloc(32); // Basic response size
-      
-      // Message Type: Binding Success Response (0x0101)
-      responseBuffer.writeUInt16BE(0x0101, 0);
-      
-      // Message Length: 12 bytes (XOR-MAPPED-ADDRESS attribute)
-      responseBuffer.writeUInt16BE(12, 2);
-      
-      // Magic Cookie
-      responseBuffer.writeUInt32BE(0x2112A442, 4);
-      
-      // Transaction ID (copy from request)
-      request.transactionId.copy(responseBuffer, 8);
-      
-      // XOR-MAPPED-ADDRESS attribute
-      responseBuffer.writeUInt16BE(0x0020, 20); // Attribute type
-      responseBuffer.writeUInt16BE(8, 22); // Attribute length
-      responseBuffer.writeUInt8(0, 24); // Reserved
-      responseBuffer.writeUInt8(0x01, 25); // Address family (IPv4)
-      
-      // XOR port
-      const xorPort = rinfo.port ^ 0x2112;
-      responseBuffer.writeUInt16BE(xorPort, 26);
-      
-      // XOR address
-      const addressParts = rinfo.address.split('.').map(Number);
-      if (addressParts.length !== 4 || addressParts.some(part => isNaN(part) || part < 0 || part > 255)) {
-        throw new Error(`Invalid IP address: ${rinfo.address}`);
-      }
-      
-      const addressInt = (addressParts[0] << 24) | (addressParts[1] << 16) | 
-                       (addressParts[2] << 8) | addressParts[3];
-      const xorAddress = (addressInt ^ 0x2112A442) >>> 0; // Unsigned right shift
-      responseBuffer.writeUInt32BE(xorAddress, 28);
-      
-      return responseBuffer;
-    } catch (error) {
-      logger.error('Error creating STUN binding response:', error);
-      this.stats.errors++;
-      return null;
-    }
-  }
+    const response = Buffer.alloc(1024);
+    let offset = 0;
 
-  getStats() {
-    return { ...this.stats };
+    // STUN header
+    response.writeUInt16BE(this.STUN_MESSAGE_TYPES.BINDING_RESPONSE, offset); // Message type
+    offset += 2;
+    
+    // Message length (will be updated later)
+    const lengthOffset = offset;
+    offset += 2;
+    
+    response.writeUInt32BE(this.STUN_MAGIC_COOKIE, offset); // Magic cookie
+    offset += 4;
+    
+    request.transactionId.copy(response, offset); // Transaction ID
+    offset += 12;
+
+    // XOR-MAPPED-ADDRESS attribute
+    const xorMappedAddrStart = offset;
+    response.writeUInt16BE(this.STUN_ATTRIBUTES.XOR_MAPPED_ADDRESS, offset);
+    offset += 2;
+    response.writeUInt16BE(8, offset); // Length
+    offset += 2;
+    response.writeUInt8(0, offset); // Reserved
+    offset += 1;
+    response.writeUInt8(0x01, offset); // Family (IPv4)
+    offset += 1;
+
+    // XOR port with magic cookie
+    const xorPort = rinfo.port ^ (this.STUN_MAGIC_COOKIE >> 16);
+    response.writeUInt16BE(xorPort, offset);
+    offset += 2;
+
+    // XOR address with magic cookie
+    const addressParts = rinfo.address.split('.').map(Number);
+    const addressInt = (addressParts[0] << 24) | (addressParts[1] << 16) | (addressParts[2] << 8) | addressParts[3];
+    const xorAddress = addressInt ^ this.STUN_MAGIC_COOKIE;
+    response.writeUInt32BE(xorAddress, offset);
+    offset += 4;
+
+    // SOFTWARE attribute
+    const software = 'P2P-Torrent-STUN/1.0';
+    const softwareBuffer = Buffer.from(software, 'utf8');
+    response.writeUInt16BE(this.STUN_ATTRIBUTES.SOFTWARE, offset);
+    offset += 2;
+    response.writeUInt16BE(softwareBuffer.length, offset);
+    offset += 2;
+    softwareBuffer.copy(response, offset);
+    offset += softwareBuffer.length;
+    
+    // Add padding
+    const padding = 4 - (softwareBuffer.length % 4);
+    if (padding !== 4) {
+      response.fill(0, offset, offset + padding);
+      offset += padding;
+    }
+
+    // Update message length
+    const messageLength = offset - 20;
+    response.writeUInt16BE(messageLength, lengthOffset);
+
+    return response.slice(0, offset);
   }
 
   stop() {
     if (this.socket) {
-      logger.info('Stopping STUN server...');
       this.socket.close();
       this.socket = null;
     }

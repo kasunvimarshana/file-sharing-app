@@ -1,16 +1,15 @@
+# Multi-stage build for production optimization
 FROM node:18-alpine AS builder
 
-# Install security updates
-RUN apk update && apk upgrade && apk add --no-cache dumb-init
-
-# Create app directory
+# Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# RUN npm ci --only=production
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -21,41 +20,32 @@ RUN npm run build
 # Production stage
 FROM node:18-alpine AS production
 
-# Install security updates and required packages
-RUN apk update && apk upgrade && \
-    apk add --no-cache dumb-init curl && \
-    rm -rf /var/cache/apk/*
-
-# Create non-root user
+# Create app user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Install production dependencies only
-RUN npm ci --only=production && npm cache clean --force
-
 # Copy built application from builder stage
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/server ./server
+COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nodejs:nodejs /app/server ./server
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
 
-# Create logs directory
-RUN mkdir -p logs && chown -R nodejs:nodejs /app
-
-# Switch to non-root user
-USER nodejs
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=8080
 
 # Expose ports
 EXPOSE 8080 3478 3479
 
+# Switch to non-root user
+USER nodejs
+
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:8080/api/health || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Start the application
-ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "server/index.js"]

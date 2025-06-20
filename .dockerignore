@@ -1,13 +1,60 @@
+# Dependencies
 node_modules
-npm-debug.log
+npm-debug.log*
+
+# Build outputs
+dist
+build
+
+# Development files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
 .git
 .gitignore
+
+# Documentation
 README.md
-.env
-.nyc_output
+docs
+
+# Test files
+test
+tests
+*.test.js
+*.spec.js
+
+# Coverage
 coverage
-.vscode
-.DS_Store
-dist
+
+# Logs
+logs
 *.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# ESLint cache
 .eslintcache
+
+# Temporary folders
+tmp
+temp

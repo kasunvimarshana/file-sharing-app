@@ -1,416 +1,343 @@
 import dgram from 'dgram';
-import { logger } from './logger.js';
-import { config } from './config.js';
+import crypto from 'crypto';
 
 export class TURNServer {
   constructor() {
     this.socket = null;
     this.allocations = new Map();
-    this.permissions = new Map();
-    this.stats = {
-      allocateRequests: 0,
-      refreshRequests: 0,
-      sendIndications: 0,
-      dataIndications: 0,
-      errors: 0
+    this.TURN_MAGIC_COOKIE = 0x2112A442;
+    this.TURN_MESSAGE_TYPES = {
+      ALLOCATE_REQUEST: 0x0003,
+      ALLOCATE_RESPONSE: 0x0103,
+      ALLOCATE_ERROR_RESPONSE: 0x0113,
+      REFRESH_REQUEST: 0x0004,
+      REFRESH_RESPONSE: 0x0104,
+      SEND_INDICATION: 0x0016,
+      DATA_INDICATION: 0x0017,
+      CREATE_PERMISSION_REQUEST: 0x0008,
+      CREATE_PERMISSION_RESPONSE: 0x0108
     };
-    
-    // Cleanup interval
-    this.cleanupInterval = null;
+    this.TURN_ATTRIBUTES = {
+      MAPPED_ADDRESS: 0x0001,
+      USERNAME: 0x0006,
+      MESSAGE_INTEGRITY: 0x0008,
+      ERROR_CODE: 0x0009,
+      REALM: 0x0014,
+      NONCE: 0x0015,
+      XOR_RELAYED_ADDRESS: 0x0016,
+      REQUESTED_TRANSPORT: 0x0019,
+      XOR_MAPPED_ADDRESS: 0x0020,
+      LIFETIME: 0x000D,
+      DATA: 0x0013,
+      XOR_PEER_ADDRESS: 0x0012
+    };
+    this.credentials = new Map([
+      ['user', 'pass']
+    ]);
   }
 
-  start(port) {
-    try {
-      this.socket = dgram.createSocket('udp4');
-      
-      this.socket.bind(port);
-      
-      this.socket.on('message', (msg, rinfo) => {
-        this.handleTURNMessage(msg, rinfo);
-      });
+  start(port = 3479) {
+    this.socket = dgram.createSocket('udp4');
 
-      this.socket.on('listening', () => {
-        const address = this.socket.address();
-        logger.info(`TURN server listening on ${address.address}:${address.port}`);
-      });
+    this.socket.on('message', (msg, rinfo) => {
+      this.handleMessage(msg, rinfo);
+    });
 
-      this.socket.on('error', (err) => {
-        logger.error('TURN server error:', err);
-        this.stats.errors++;
-      });
+    this.socket.on('error', (err) => {
+      console.error('TURN server error:', err);
+    });
 
-      this.socket.on('close', () => {
-        logger.info('TURN server closed');
-      });
-
-      // Start cleanup task
-      this.cleanupInterval = setInterval(() => {
-        this.cleanupExpiredAllocations();
-      }, 60000); // Every minute
-
-      // Periodic stats logging
-      setInterval(() => {
-        if (this.stats.allocateRequests > 0) {
-          logger.debug('TURN server stats:', this.stats);
-        }
-      }, 60000); // Every minute
-
-    } catch (error) {
-      logger.error('Failed to start TURN server:', error);
-      throw error;
-    }
+    this.socket.bind(port, () => {
+      console.log(`TURN server listening on port ${port}`);
+    });
   }
 
-  handleTURNMessage(message, rinfo) {
+  handleMessage(msg, rinfo) {
     try {
-      if (message.length < 20) {
-        logger.warn(`TURN message too short: ${message.length} bytes from ${rinfo.address}:${rinfo.port}`);
-        return;
-      }
-
-      const turnMessage = this.parseSTUNMessage(message);
+      const turnMessage = this.parseTURNMessage(msg);
       
-      switch (turnMessage.messageType) {
-        case 0x0003: // Allocate Request
-          this.stats.allocateRequests++;
+      switch (turnMessage.type) {
+        case this.TURN_MESSAGE_TYPES.ALLOCATE_REQUEST:
           this.handleAllocateRequest(turnMessage, rinfo);
           break;
-        case 0x0004: // Refresh Request
-          this.stats.refreshRequests++;
+        case this.TURN_MESSAGE_TYPES.REFRESH_REQUEST:
           this.handleRefreshRequest(turnMessage, rinfo);
           break;
-        case 0x0016: // Send Indication
-          this.stats.sendIndications++;
+        case this.TURN_MESSAGE_TYPES.CREATE_PERMISSION_REQUEST:
+          this.handleCreatePermissionRequest(turnMessage, rinfo);
+          break;
+        case this.TURN_MESSAGE_TYPES.SEND_INDICATION:
           this.handleSendIndication(turnMessage, rinfo);
           break;
-        case 0x0017: // Data Indication
-          this.stats.dataIndications++;
-          this.handleDataIndication(turnMessage, rinfo);
-          break;
         default:
-          logger.debug(`Unsupported TURN message type: 0x${turnMessage.messageType.toString(16)} from ${rinfo.address}:${rinfo.port}`);
+          console.log(`Unhandled TURN message type: ${turnMessage.type}`);
       }
     } catch (error) {
-      logger.error(`Error handling TURN message from ${rinfo.address}:${rinfo.port}:`, error);
-      this.stats.errors++;
+      console.error('Failed to handle TURN message:', error);
     }
   }
 
-  parseSTUNMessage(buffer) {
-    try {
-      const messageType = buffer.readUInt16BE(0);
-      const messageLength = buffer.readUInt16BE(2);
-      const magicCookie = buffer.readUInt32BE(4);
-      const transactionId = buffer.subarray(8, 20);
-
-      // Validate magic cookie
-      if (magicCookie !== 0x2112A442) {
-        throw new Error(`Invalid magic cookie: 0x${magicCookie.toString(16)}`);
-      }
-
-      return {
-        messageType,
-        messageLength,
-        magicCookie,
-        transactionId,
-        attributes: this.parseAttributes(buffer.subarray(20))
-      };
-    } catch (error) {
-      logger.error('Error parsing TURN message:', error);
-      throw error;
+  parseTURNMessage(buffer) {
+    if (buffer.length < 20) {
+      throw new Error('Invalid TURN message length');
     }
+
+    const type = buffer.readUInt16BE(0);
+    const length = buffer.readUInt16BE(2);
+    const magicCookie = buffer.readUInt32BE(4);
+    const transactionId = buffer.slice(8, 20);
+
+    return {
+      type,
+      length,
+      magicCookie,
+      transactionId,
+      attributes: this.parseAttributes(buffer.slice(20))
+    };
   }
 
   parseAttributes(buffer) {
-    const attributes = [];
+    const attributes = new Map();
     let offset = 0;
 
     while (offset < buffer.length) {
-      if (offset + 4 > buffer.length) {
-        break;
-      }
+      if (offset + 4 > buffer.length) break;
 
       const type = buffer.readUInt16BE(offset);
       const length = buffer.readUInt16BE(offset + 2);
-      
-      if (offset + 4 + length > buffer.length) {
-        break;
-      }
+      const value = buffer.slice(offset + 4, offset + 4 + length);
 
-      const value = buffer.subarray(offset + 4, offset + 4 + length);
-      attributes.push({ type, length, value });
-      
-      // Move to next attribute (with padding)
-      const paddedLength = Math.ceil(length / 4) * 4;
-      offset += 4 + paddedLength;
+      attributes.set(type, value);
+      offset += 4 + length + (length % 4 === 0 ? 0 : 4 - (length % 4)); // Padding
     }
 
     return attributes;
   }
 
   handleAllocateRequest(request, rinfo) {
-    try {
-      // Simple authentication check (in production, implement proper auth)
-      const usernameAttr = request.attributes.find(attr => attr.type === 0x0006);
-      if (!usernameAttr || usernameAttr.value.toString() !== config.turnUsername) {
-        this.sendErrorResponse(request, rinfo, 401, 'Unauthorized');
-        return;
-      }
-
-      const allocationId = this.generateAllocationId();
-      const relayAddress = { 
-        address: '127.0.0.1', 
-        port: 50000 + Math.floor(Math.random() * 10000) 
-      };
-      
-      this.allocations.set(allocationId, {
-        clientAddress: rinfo,
-        relayAddress,
-        lifetime: 600, // 10 minutes
-        createdAt: Date.now(),
-        lastRefresh: Date.now()
-      });
-
-      const response = this.createAllocateResponse(request, relayAddress);
-      this.socket.send(response, rinfo.port, rinfo.address, (err) => {
-        if (err) {
-          logger.error(`Failed to send TURN allocate response to ${rinfo.address}:${rinfo.port}:`, err);
-          this.stats.errors++;
-        } else {
-          logger.debug(`TURN allocation created for ${rinfo.address}:${rinfo.port}, relay: ${relayAddress.address}:${relayAddress.port}`);
-        }
-      });
-    } catch (error) {
-      logger.error('Error handling TURN allocate request:', error);
-      this.stats.errors++;
+    // Simple authentication check
+    const username = request.attributes.get(this.TURN_ATTRIBUTES.USERNAME);
+    if (!username || !this.credentials.has(username.toString())) {
+      this.sendErrorResponse(request, rinfo, 401, 'Unauthorized');
+      return;
     }
+
+    // Create allocation
+    const allocationKey = `${rinfo.address}:${rinfo.port}`;
+    const relayPort = 50000 + Math.floor(Math.random() * 10000);
+    
+    const allocation = {
+      client: rinfo,
+      relayPort: relayPort,
+      lifetime: 600, // 10 minutes
+      permissions: new Set(),
+      created: Date.now()
+    };
+
+    this.allocations.set(allocationKey, allocation);
+
+    // Send success response
+    const response = this.createAllocateResponse(request, allocation);
+    this.socket.send(response, rinfo.port, rinfo.address);
   }
 
   handleRefreshRequest(request, rinfo) {
-    try {
-      // Find allocation for this client
-      const allocation = Array.from(this.allocations.values())
-        .find(alloc => alloc.clientAddress.address === rinfo.address && 
-                      alloc.clientAddress.port === rinfo.port);
-      
-      if (allocation) {
-        allocation.lifetime = 600; // Refresh lifetime
-        allocation.lastRefresh = Date.now();
-        logger.debug(`TURN allocation refreshed for ${rinfo.address}:${rinfo.port}`);
-      }
+    const allocationKey = `${rinfo.address}:${rinfo.port}`;
+    const allocation = this.allocations.get(allocationKey);
 
-      const response = this.createRefreshResponse(request);
-      this.socket.send(response, rinfo.port, rinfo.address, (err) => {
-        if (err) {
-          logger.error(`Failed to send TURN refresh response to ${rinfo.address}:${rinfo.port}:`, err);
-          this.stats.errors++;
-        }
-      });
-    } catch (error) {
-      logger.error('Error handling TURN refresh request:', error);
-      this.stats.errors++;
+    if (!allocation) {
+      this.sendErrorResponse(request, rinfo, 437, 'Allocation Mismatch');
+      return;
+    }
+
+    // Update lifetime
+    allocation.lifetime = 600;
+    allocation.created = Date.now();
+
+    const response = this.createRefreshResponse(request);
+    this.socket.send(response, rinfo.port, rinfo.address);
+  }
+
+  handleCreatePermissionRequest(request, rinfo) {
+    const allocationKey = `${rinfo.address}:${rinfo.port}`;
+    const allocation = this.allocations.get(allocationKey);
+
+    if (!allocation) {
+      this.sendErrorResponse(request, rinfo, 437, 'Allocation Mismatch');
+      return;
+    }
+
+    const peerAddress = request.attributes.get(this.TURN_ATTRIBUTES.XOR_PEER_ADDRESS);
+    if (peerAddress) {
+      // Parse XOR peer address and add to permissions
+      allocation.permissions.add(peerAddress.toString());
+    }
+
+    const response = this.createCreatePermissionResponse(request);
+    this.socket.send(response, rinfo.port, rinfo.address);
+  }
+
+  handleSendIndication(request, rinfo) {
+    const allocationKey = `${rinfo.address}:${rinfo.port}`;
+    const allocation = this.allocations.get(allocationKey);
+
+    if (!allocation) {
+      return; // Silently ignore
+    }
+
+    const data = request.attributes.get(this.TURN_ATTRIBUTES.DATA);
+    const peerAddress = request.attributes.get(this.TURN_ATTRIBUTES.XOR_PEER_ADDRESS);
+
+    if (data && peerAddress) {
+      // Forward data to peer (simplified implementation)
+      console.log('Forwarding data via TURN relay');
     }
   }
 
-  handleSendIndication(indication, rinfo) {
-    try {
-      // Handle data forwarding through TURN relay
-      const dataAttr = indication.attributes.find(attr => attr.type === 0x0013);
-      const peerAddrAttr = indication.attributes.find(attr => attr.type === 0x0012);
-      
-      if (dataAttr && peerAddrAttr) {
-        const peerAddress = this.parseXORPeerAddress(peerAddrAttr.value);
-        if (peerAddress) {
-          // In a real implementation, forward data to peer
-          logger.debug(`TURN relay data from ${rinfo.address}:${rinfo.port} to ${peerAddress.address}:${peerAddress.port} (${dataAttr.length} bytes)`);
-        }
-      }
-    } catch (error) {
-      logger.error('Error handling TURN send indication:', error);
-      this.stats.errors++;
-    }
-  }
+  createAllocateResponse(request, allocation) {
+    const response = Buffer.alloc(1024);
+    let offset = 0;
 
-  handleDataIndication(indication, rinfo) {
-    try {
-      // Handle incoming data from peers
-      logger.debug(`TURN received data indication from ${rinfo.address}:${rinfo.port}`);
-    } catch (error) {
-      logger.error('Error handling TURN data indication:', error);
-      this.stats.errors++;
-    }
-  }
+    // TURN header
+    response.writeUInt16BE(this.TURN_MESSAGE_TYPES.ALLOCATE_RESPONSE, offset);
+    offset += 2;
+    
+    const lengthOffset = offset;
+    offset += 2;
+    
+    response.writeUInt32BE(this.TURN_MAGIC_COOKIE, offset);
+    offset += 4;
+    
+    request.transactionId.copy(response, offset);
+    offset += 12;
 
-  generateAllocationId() {
-    return Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-  }
+    // XOR-RELAYED-ADDRESS attribute
+    response.writeUInt16BE(this.TURN_ATTRIBUTES.XOR_RELAYED_ADDRESS, offset);
+    offset += 2;
+    response.writeUInt16BE(8, offset);
+    offset += 2;
+    response.writeUInt8(0, offset);
+    offset += 1;
+    response.writeUInt8(0x01, offset); // IPv4
+    offset += 1;
 
-  createAllocateResponse(request, relayAddress) {
-    try {
-      const responseBuffer = Buffer.alloc(64);
-      
-      // Message Type: Allocate Success Response (0x0103)
-      responseBuffer.writeUInt16BE(0x0103, 0);
-      
-      // Message Length: will be calculated
-      responseBuffer.writeUInt16BE(44, 2);
-      
-      // Magic Cookie
-      responseBuffer.writeUInt32BE(0x2112A442, 4);
-      
-      // Transaction ID
-      request.transactionId.copy(responseBuffer, 8);
-      
-      // XOR-RELAYED-ADDRESS attribute (0x0016)
-      responseBuffer.writeUInt16BE(0x0016, 20);
-      responseBuffer.writeUInt16BE(8, 22);
-      responseBuffer.writeUInt8(0, 24);
-      responseBuffer.writeUInt8(0x01, 25); // IPv4
-      
-      const xorPort = relayAddress.port ^ 0x2112;
-      responseBuffer.writeUInt16BE(xorPort, 26);
-      
-      const addressParts = relayAddress.address.split('.').map(Number);
-      const addressInt = (addressParts[0] << 24) | (addressParts[1] << 16) | 
-                       (addressParts[2] << 8) | addressParts[3];
-      const xorAddress = (addressInt ^ 0x2112A442) >>> 0;
-      responseBuffer.writeUInt32BE(xorAddress, 28);
-      
-      // LIFETIME attribute (0x000D)
-      responseBuffer.writeUInt16BE(0x000D, 32);
-      responseBuffer.writeUInt16BE(4, 34);
-      responseBuffer.writeUInt32BE(600, 36); // 10 minutes
-      
-      // XOR-MAPPED-ADDRESS attribute (0x0020)
-      responseBuffer.writeUInt16BE(0x0020, 40);
-      responseBuffer.writeUInt16BE(8, 42);
-      responseBuffer.writeUInt8(0, 44);
-      responseBuffer.writeUInt8(0x01, 45);
-      responseBuffer.writeUInt16BE(xorPort, 46);
-      responseBuffer.writeUInt32BE(xorAddress, 48);
-      
-      return responseBuffer.subarray(0, 52);
-    } catch (error) {
-      logger.error('Error creating TURN allocate response:', error);
-      this.stats.errors++;
-      return null;
-    }
+    const xorPort = allocation.relayPort ^ (this.TURN_MAGIC_COOKIE >> 16);
+    response.writeUInt16BE(xorPort, offset);
+    offset += 2;
+
+    // Use server's address for relay
+    const serverAddress = 0x7F000001; // 127.0.0.1
+    const xorAddress = serverAddress ^ this.TURN_MAGIC_COOKIE;
+    response.writeUInt32BE(xorAddress, offset);
+    offset += 4;
+
+    // LIFETIME attribute
+    response.writeUInt16BE(this.TURN_ATTRIBUTES.LIFETIME, offset);
+    offset += 2;
+    response.writeUInt16BE(4, offset);
+    offset += 2;
+    response.writeUInt32BE(allocation.lifetime, offset);
+    offset += 4;
+
+    const messageLength = offset - 20;
+    response.writeUInt16BE(messageLength, lengthOffset);
+
+    return response.slice(0, offset);
   }
 
   createRefreshResponse(request) {
-    try {
-      const responseBuffer = Buffer.alloc(32);
-      
-      // Message Type: Refresh Success Response (0x0104)
-      responseBuffer.writeUInt16BE(0x0104, 0);
-      responseBuffer.writeUInt16BE(12, 2);
-      responseBuffer.writeUInt32BE(0x2112A442, 4);
-      request.transactionId.copy(responseBuffer, 8);
-      
-      // LIFETIME attribute
-      responseBuffer.writeUInt16BE(0x000D, 20);
-      responseBuffer.writeUInt16BE(4, 22);
-      responseBuffer.writeUInt32BE(600, 24);
-      
-      return responseBuffer.subarray(0, 28);
-    } catch (error) {
-      logger.error('Error creating TURN refresh response:', error);
-      this.stats.errors++;
-      return null;
-    }
-  }
+    const response = Buffer.alloc(256);
+    let offset = 0;
 
-  sendErrorResponse(request, rinfo, errorCode, reasonPhrase) {
-    try {
-      const reasonBuffer = Buffer.from(reasonPhrase, 'utf8');
-      const responseBuffer = Buffer.alloc(32 + reasonBuffer.length);
-      
-      // Message Type: Error Response
-      responseBuffer.writeUInt16BE(0x0111, 0);
-      responseBuffer.writeUInt16BE(12 + reasonBuffer.length, 2);
-      responseBuffer.writeUInt32BE(0x2112A442, 4);
-      request.transactionId.copy(responseBuffer, 8);
-      
-      // ERROR-CODE attribute
-      responseBuffer.writeUInt16BE(0x0009, 20);
-      responseBuffer.writeUInt16BE(4 + reasonBuffer.length, 22);
-      responseBuffer.writeUInt16BE(0, 24); // Reserved
-      responseBuffer.writeUInt8(Math.floor(errorCode / 100), 26); // Class
-      responseBuffer.writeUInt8(errorCode % 100, 27); // Number
-      reasonBuffer.copy(responseBuffer, 28);
-      
-      this.socket.send(responseBuffer, rinfo.port, rinfo.address);
-    } catch (error) {
-      logger.error('Error sending TURN error response:', error);
-      this.stats.errors++;
-    }
-  }
-
-  parseXORPeerAddress(buffer) {
-    try {
-      if (buffer.length < 8) return null;
-      
-      const family = buffer.readUInt8(1);
-      const port = buffer.readUInt16BE(2) ^ 0x2112;
-      
-      if (family === 0x01) { // IPv4
-        const addressInt = buffer.readUInt32BE(4) ^ 0x2112A442;
-        const address = [
-          (addressInt >>> 24) & 0xFF,
-          (addressInt >>> 16) & 0xFF,
-          (addressInt >>> 8) & 0xFF,
-          addressInt & 0xFF
-        ].join('.');
-        
-        return { address, port };
-      }
-      
-      return null;
-    } catch (error) {
-      logger.error('Error parsing XOR peer address:', error);
-      return null;
-    }
-  }
-
-  cleanupExpiredAllocations() {
-    const now = Date.now();
-    let cleanedCount = 0;
+    response.writeUInt16BE(this.TURN_MESSAGE_TYPES.REFRESH_RESPONSE, offset);
+    offset += 2;
     
-    for (const [allocationId, allocation] of this.allocations.entries()) {
-      const age = now - allocation.lastRefresh;
-      const lifetimeMs = allocation.lifetime * 1000;
-      
-      if (age > lifetimeMs) {
-        this.allocations.delete(allocationId);
-        cleanedCount++;
-      }
-    }
+    const lengthOffset = offset;
+    offset += 2;
     
-    if (cleanedCount > 0) {
-      logger.debug(`Cleaned up ${cleanedCount} expired TURN allocations`);
-    }
+    response.writeUInt32BE(this.TURN_MAGIC_COOKIE, offset);
+    offset += 4;
+    
+    request.transactionId.copy(response, offset);
+    offset += 12;
+
+    // LIFETIME attribute
+    response.writeUInt16BE(this.TURN_ATTRIBUTES.LIFETIME, offset);
+    offset += 2;
+    response.writeUInt16BE(4, offset);
+    offset += 2;
+    response.writeUInt32BE(600, offset); // 10 minutes
+    offset += 4;
+
+    const messageLength = offset - 20;
+    response.writeUInt16BE(messageLength, lengthOffset);
+
+    return response.slice(0, offset);
   }
 
-  getStats() {
-    return { 
-      ...this.stats,
-      activeAllocations: this.allocations.size
-    };
+  createCreatePermissionResponse(request) {
+    const response = Buffer.alloc(128);
+    let offset = 0;
+
+    response.writeUInt16BE(this.TURN_MESSAGE_TYPES.CREATE_PERMISSION_RESPONSE, offset);
+    offset += 2;
+    
+    const lengthOffset = offset;
+    offset += 2;
+    
+    response.writeUInt32BE(this.TURN_MAGIC_COOKIE, offset);
+    offset += 4;
+    
+    request.transactionId.copy(response, offset);
+    offset += 12;
+
+    const messageLength = offset - 20;
+    response.writeUInt16BE(messageLength, lengthOffset);
+
+    return response.slice(0, offset);
+  }
+
+  sendErrorResponse(request, rinfo, errorCode, errorPhrase) {
+    const response = Buffer.alloc(256);
+    let offset = 0;
+
+    response.writeUInt16BE(this.TURN_MESSAGE_TYPES.ALLOCATE_ERROR_RESPONSE, offset);
+    offset += 2;
+    
+    const lengthOffset = offset;
+    offset += 2;
+    
+    response.writeUInt32BE(this.TURN_MAGIC_COOKIE, offset);
+    offset += 4;
+    
+    request.transactionId.copy(response, offset);
+    offset += 12;
+
+    // ERROR-CODE attribute
+    response.writeUInt16BE(this.TURN_ATTRIBUTES.ERROR_CODE, offset);
+    offset += 2;
+    const errorLength = 4 + errorPhrase.length;
+    response.writeUInt16BE(errorLength, offset);
+    offset += 2;
+    response.writeUInt16BE(0, offset); // Reserved
+    offset += 2;
+    response.writeUInt8(Math.floor(errorCode / 100), offset); // Class
+    offset += 1;
+    response.writeUInt8(errorCode % 100, offset); // Number
+    offset += 1;
+    Buffer.from(errorPhrase).copy(response, offset);
+    offset += errorPhrase.length;
+
+    const messageLength = offset - 20;
+    response.writeUInt16BE(messageLength, lengthOffset);
+
+    this.socket.send(response.slice(0, offset), rinfo.port, rinfo.address);
   }
 
   stop() {
     if (this.socket) {
-      logger.info('Stopping TURN server...');
-      
-      if (this.cleanupInterval) {
-        clearInterval(this.cleanupInterval);
-        this.cleanupInterval = null;
-      }
-      
       this.socket.close();
       this.socket = null;
-      this.allocations.clear();
-      this.permissions.clear();
     }
   }
 }

@@ -1,267 +1,214 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Download, Users, Share2, Shield, Activity, FileText, Network } from 'lucide-react';
-import { P2PClient } from './lib/p2p-client';
-import { FileManager } from './components/FileManager';
-import { PeerNetwork } from './components/PeerNetwork';
-import { TorrentList } from './components/TorrentList';
-import { Dashboard } from './components/Dashboard';
-import { ErrorBoundary } from './hooks/useErrorBoundary';
-import { logger } from './utils/logger';
-import { ErrorHandler } from './utils/error-handler';
-import type { Peer, TorrentFile, NetworkStats, AppError } from './types';
+import { Upload, Download, Users, Share2, Shield, Zap } from 'lucide-react';
+import FileUpload from './components/FileUpload';
+import PeerNetwork from './components/PeerNetwork';
+import FileList from './components/FileList';
+import TransferStatus from './components/TransferStatus';
+import { P2PManager } from './utils/p2p-manager';
+import { SignalingClient } from './utils/signaling-client';
 
 function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [peerId, setPeerId] = useState('');
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [peers, setPeers] = useState<Peer[]>([]);
-  const [torrents, setTorrents] = useState<TorrentFile[]>([]);
-  const [error, setError] = useState<AppError | null>(null);
-  const [networkStats, setNetworkStats] = useState<NetworkStats>({
-    uploadSpeed: 0,
-    downloadSpeed: 0,
-    connectedPeers: 0,
-    totalTransferred: 0,
-    totalUploaded: 0,
-    totalDownloaded: 0,
-    activeConnections: 0,
-    failedConnections: 0
-  });
-
-  const p2pClientRef = useRef<P2PClient | null>(null);
+  const [peers, setPeers] = useState([]);
+  const [files, setFiles] = useState([]);
+  const [transfers, setTransfers] = useState([]);
+  const p2pManagerRef = useRef(null);
+  const signalingClientRef = useRef(null);
 
   useEffect(() => {
+    // Initialize P2P system
+    const initializeP2P = async () => {
+      try {
+        // Use environment variable for signaling server URL, fallback to localhost for local development
+        const baseUrl = import.meta.env.VITE_SIGNALING_SERVER_URL || 'ws://localhost:8080';
+        const signalingServerUrl = `${baseUrl}/ws`;
+
+        console.debug(`signalingServerUrl : ${signalingServerUrl}`);
+        
+        signalingClientRef.current = new SignalingClient(signalingServerUrl);
+        p2pManagerRef.current = new P2PManager(signalingClientRef.current);
+
+        // Set up event listeners
+        signalingClientRef.current.on('connected', (id) => {
+          setPeerId(id);
+          setIsConnected(true);
+        });
+
+        signalingClientRef.current.on('peer-joined', (peer) => {
+          setPeers(prev => [...prev.filter(p => p.id !== peer.id), peer]);
+        });
+
+        signalingClientRef.current.on('peer-left', (peerId) => {
+          setPeers(prev => prev.filter(p => p.id !== peerId));
+        });
+
+        p2pManagerRef.current.on('file-shared', (file) => {
+          setFiles(prev => [...prev, file]);
+        });
+
+        p2pManagerRef.current.on('transfer-progress', (transfer) => {
+          setTransfers(prev => {
+            const index = prev.findIndex(t => t.id === transfer.id);
+            if (index >= 0) {
+              const newTransfers = [...prev];
+              newTransfers[index] = transfer;
+              return newTransfers;
+            }
+            return [...prev, transfer];
+          });
+        });
+
+        await signalingClientRef.current.connect();
+      } catch (error) {
+        console.error('Failed to initialize P2P system:', error);
+      }
+    };
+
     initializeP2P();
+
     return () => {
-      if (p2pClientRef.current) {
-        p2pClientRef.current.disconnect();
+      if (signalingClientRef.current) {
+        signalingClientRef.current.disconnect();
+      }
+      if (p2pManagerRef.current) {
+        p2pManagerRef.current.cleanup();
       }
     };
   }, []);
 
-  const initializeP2P = async () => {
-    try {
-      p2pClientRef.current = new P2PClient();
-      
-      // Set up event listeners
-      p2pClientRef.current.on('connected', (id: string) => {
-        setIsConnected(true);
-        setPeerId(id);
-        setError(null);
-        logger.info(`Connected with peer ID: ${id}`);
-      });
-
-      p2pClientRef.current.on('disconnected', () => {
-        setIsConnected(false);
-        setPeerId('');
-        logger.warn('Disconnected from signaling server');
-      });
-
-      p2pClientRef.current.on('peers-updated', (peerList: Peer[]) => {
-        setPeers(peerList);
-        setNetworkStats(prev => ({ ...prev, connectedPeers: peerList.length }));
-      });
-
-      p2pClientRef.current.on('torrents-updated', (torrentList: TorrentFile[]) => {
-        setTorrents(torrentList);
-      });
-
-      p2pClientRef.current.on('stats-updated', (stats: Partial<NetworkStats>) => {
-        setNetworkStats(prev => ({ ...prev, ...stats }));
-      });
-
-      p2pClientRef.current.on('error', (appError: AppError) => {
-        setError(appError);
-        logger.error('P2P Client error:', appError);
-      });
-
-      p2pClientRef.current.on('download-complete', ({ torrent }: { torrent: TorrentFile }) => {
-        logger.info(`Download completed: ${torrent.name}`);
-        // Could show a notification here
-      });
-
-      await p2pClientRef.current.connect();
-    } catch (error) {
-      const appError = ErrorHandler.handle(error as Error, 'App.initializeP2P');
-      setError(appError);
-      logger.error('Failed to initialize P2P client:', appError);
+  const handleFileUpload = async (file) => {
+    if (p2pManagerRef.current) {
+      await p2pManagerRef.current.shareFile(file);
     }
   };
 
-  const handleRetryConnection = async () => {
-    setError(null);
-    await initializeP2P();
-  };
-
-  const tabs = [
-    { id: 'dashboard', name: 'Dashboard', icon: Activity },
-    { id: 'files', name: 'Files', icon: FileText },
-    { id: 'network', name: 'Network', icon: Network },
-    { id: 'torrents', name: 'Torrents', icon: Share2 }
-  ];
-
-  const renderTabContent = () => {
-    if (!p2pClientRef.current) {
-      return (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-            <p className="text-gray-400">Initializing P2P client...</p>
-          </div>
-        </div>
-      );
-    }
-
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard networkStats={networkStats} peers={peers} torrents={torrents} />;
-      case 'files':
-        return <FileManager p2pClient={p2pClientRef.current} torrents={torrents} />;
-      case 'network':
-        return <PeerNetwork peers={peers} networkStats={networkStats} />;
-      case 'torrents':
-        return <TorrentList torrents={torrents} p2pClient={p2pClientRef.current} />;
-      default:
-        return <Dashboard networkStats={networkStats} peers={peers} torrents={torrents} />;
+  const handleFileDownload = async (fileId) => {
+    if (p2pManagerRef.current) {
+      await p2pManagerRef.current.downloadFile(fileId);
     }
   };
 
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900">
-        {/* Background Effects */}
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-3xl"></div>
-        <div className="fixed inset-0 bg-gradient-to-tr from-purple-500/10 via-transparent to-cyan-500/10"></div>
-        
-        {/* Navigation Header */}
-        <header className="relative z-10 border-b border-white/10 bg-black/20 backdrop-blur-xl">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="p-2 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-xl">
-                  <Share2 className="w-6 h-6 text-white" />
-                </div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-                  P2P Torrent System
-                </h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
+      {/* Header */}
+      <header className="border-b border-gray-700/50 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg">
+                <Share2 className="w-6 h-6 text-white" />
               </div>
-              
-              <div className="flex items-center space-x-4">
-                {/* Connection Status */}
-                <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
-                  isConnected 
-                    ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                }`}>
-                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></div>
-                  <span className="text-sm font-medium">
-                    {isConnected ? 'Connected' : 'Disconnected'}
-                  </span>
-                </div>
-                
-                {/* Peer ID */}
-                {peerId && (
-                  <div className="px-3 py-2 bg-white/10 rounded-lg border border-white/20">
-                    <span className="text-sm text-gray-300">ID: {peerId.slice(-8)}</span>
-                  </div>
-                )}
-
-                {/* Security Indicator */}
-                <div className="flex items-center space-x-2 px-3 py-2 bg-white/10 rounded-lg border border-white/20">
-                  <Shield className="w-4 h-4 text-green-400" />
-                  <span className="text-sm text-gray-300">Secure</span>
-                </div>
+              <div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                  P2P Torrent
+                </h1>
+                <p className="text-sm text-gray-400">Decentralized File Sharing</p>
               </div>
             </div>
-          </div>
-        </header>
-
-        {/* Error Banner */}
-        {error && (
-          <div className="relative z-10 bg-red-500/20 border-b border-red-500/30 px-6 py-3">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
-                <span className="text-red-400 text-sm font-medium">
-                  {error.message}
+            
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                <span className="text-sm text-gray-300">
+                  {isConnected ? 'Connected' : 'Disconnected'}
                 </span>
               </div>
-              <button
-                onClick={handleRetryConnection}
-                className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors duration-200"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
-          <div className="grid grid-cols-12 gap-6">
-            {/* Sidebar Navigation */}
-            <div className="col-span-12 lg:col-span-3">
-              <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                <nav className="space-y-2">
-                  {tabs.map((tab) => {
-                    const Icon = tab.icon;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
-                          activeTab === tab.id
-                            ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-white border border-cyan-500/30'
-                            : 'text-gray-400 hover:text-white hover:bg-white/5'
-                        }`}
-                      >
-                        <Icon className="w-5 h-5" />
-                        <span>{tab.name}</span>
-                      </button>
-                    );
-                  })}
-                </nav>
-
-                {/* Quick Stats */}
-                <div className="mt-8 space-y-4">
-                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                    Quick Stats
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">Peers</span>
-                      <span className="text-lg font-bold text-cyan-400">{networkStats.connectedPeers}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">Torrents</span>
-                      <span className="text-lg font-bold text-purple-400">{torrents.length}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">Upload</span>
-                      <span className="text-lg font-bold text-green-400">
-                        {(networkStats.uploadSpeed / 1024).toFixed(1)} KB/s
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">Download</span>
-                      <span className="text-lg font-bold text-blue-400">
-                        {(networkStats.downloadSpeed / 1024).toFixed(1)} KB/s
-                      </span>
-                    </div>
-                  </div>
+              {peerId && (
+                <div className="px-3 py-1 bg-gray-800 rounded-full text-xs font-mono text-gray-300">
+                  ID: {peerId.slice(0, 8)}...
                 </div>
-              </div>
-            </div>
-
-            {/* Main Content */}
-            <div className="col-span-12 lg:col-span-9">
-              <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 min-h-[600px]">
-                {renderTabContent()}
-              </div>
+              )}
             </div>
           </div>
         </div>
-      </div>
-    </ErrorBoundary>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Upload & Files */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-gradient-to-r from-blue-600/20 to-blue-800/20 border border-blue-500/30 rounded-xl p-4">
+                <div className="flex items-center space-x-3">
+                  <Users className="w-8 h-8 text-blue-400" />
+                  <div>
+                    <p className="text-2xl font-bold text-white">{peers.length}</p>
+                    <p className="text-sm text-blue-200">Active Peers</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-r from-emerald-600/20 to-emerald-800/20 border border-emerald-500/30 rounded-xl p-4">
+                <div className="flex items-center space-x-3">
+                  <Upload className="w-8 h-8 text-emerald-400" />
+                  <div>
+                    <p className="text-2xl font-bold text-white">{files.length}</p>
+                    <p className="text-sm text-emerald-200">Shared Files</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-r from-purple-600/20 to-purple-800/20 border border-purple-500/30 rounded-xl p-4">
+                <div className="flex items-center space-x-3">
+                  <Download className="w-8 h-8 text-purple-400" />
+                  <div>
+                    <p className="text-2xl font-bold text-white">{transfers.filter(t => t.type === 'download').length}</p>
+                    <p className="text-sm text-purple-200">Downloads</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* File Upload */}
+            <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <Shield className="w-5 h-5 text-emerald-400" />
+                <h2 className="text-lg font-semibold text-white">Share Files</h2>
+              </div>
+              <FileUpload onFileUpload={handleFileUpload} />
+            </div>
+
+            {/* File List */}
+            <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <Zap className="w-5 h-5 text-cyan-400" />
+                <h2 className="text-lg font-semibold text-white">Available Files</h2>
+              </div>
+              <FileList files={files} onDownload={handleFileDownload} />
+            </div>
+          </div>
+
+          {/* Right Column - Network & Transfers */}
+          <div className="space-y-6">
+            {/* Peer Network */}
+            <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Peer Network</h2>
+              <PeerNetwork peers={peers} currentPeerId={peerId} />
+            </div>
+
+            {/* Transfer Status */}
+            <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Active Transfers</h2>
+              <TransferStatus transfers={transfers} />
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-700/50 bg-gray-900/50 backdrop-blur-sm mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="text-center text-gray-400">
+            <p className="text-sm">
+              Powered by WebRTC • Decentralized • Secure • Open Source
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
 
