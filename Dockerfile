@@ -1,6 +1,3 @@
-# ===========================================================
-# Builder
-# ===========================================================
 FROM node:18-alpine AS builder
 
 # Install security updates
@@ -13,10 +10,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-# RUN npm ci --only=production && npm cache clean --force
-
-# Install ALL dependencies (including devDeps) for build
-RUN npm ci
+RUN npm ci --only=production && npm cache clean --force
 
 # Copy source code
 COPY . .
@@ -24,9 +18,7 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# ===========================================================
 # Production stage
-# ===========================================================
 FROM node:18-alpine AS production
 
 # Install security updates and required packages

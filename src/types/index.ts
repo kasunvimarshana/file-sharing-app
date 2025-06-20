@@ -78,24 +78,9 @@ export interface ConnectionConfig {
   retryAttempts: number;
 }
 
-// export interface AppError {
-//   code: string;
-//   message: string;
-//   details?: any;
-//   timestamp: number;
-// }
-
-export class AppError extends Error {
+export interface AppError {
   code: string;
-  // message: string;
+  message: string;
   details?: any;
   timestamp: number;
-
-  constructor(code: string, message: string, details?: any) {
-    super(message);
-    this.name = 'AppError';
-    this.code = code;
-    this.details = details;
-    this.timestamp = Date.now();
-  }
 }
