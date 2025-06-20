@@ -1,4 +1,4 @@
-# Multi-stage build for production optimization
+# Multi-stage build for production deployment
 FROM node:18-alpine AS builder
 
 # Set working directory
@@ -16,36 +16,39 @@ COPY . .
 
 # Build the application
 RUN npm run build
+RUN npm run build:server
 
 # Production stage
 FROM node:18-alpine AS production
 
-# Create app user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+# Create app user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
 
 # Set working directory
 WORKDIR /app
 
-# Copy built application from builder stage
+# Copy built application
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nodejs:nodejs /app/server ./server
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
+COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=8080
-
-# Expose ports
-EXPOSE 8080 3478 3479
+# Create uploads directory
+RUN mkdir -p uploads && chown nodejs:nodejs uploads
 
 # Switch to non-root user
 USER nodejs
 
+# Expose port
+EXPOSE 3000
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8080/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+  CMD node dist/server/healthcheck.js
 
 # Start the application
-CMD ["node", "server/index.js"]
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/server/index.js"]
