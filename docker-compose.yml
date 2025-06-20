@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  p2p-torrent:
+    build: .
+    ports:
+      - "3000:8080"    # Web interface
+      - "3478:3478/udp" # STUN server
+      - "3479:3479/udp" # TURN server
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.p2p-torrent.rule=Host(`p2p.localhost`)"
+      - "traefik.http.services.p2p-torrent.loadbalancer.server.port=8080"
+
+  # Optional: Add reverse proxy for production deployment
+  # traefik:
+  #   image: traefik:v2.9
+  #   command:
+  #     - "--api.insecure=true"
+  #     - "--providers.docker=true"
+  #     - "--providers.docker.exposedbydefault=false"
+  #     - "--entrypoints.web.address=:80"
+  #   ports:
+  #     - "80:80"
+  #     - "8080:8080"
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+  #   restart: unless-stopped
+
+networks:
+  default:
+    name: p2p-network
