@@ -1,0 +1,11 @@
+{
+  "name": "p2p-file-share",
+  "version": "1.0.0",
+  "description": "Secure peer-to-peer file transfer with advanced WebRTC technology",
+  "scripts": {
+    "start": "http-server -c-1 -p 8080"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
