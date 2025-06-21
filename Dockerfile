@@ -1,54 +1,47 @@
-# Multi-stage build for production deployment
-FROM node:18-alpine AS builder
+# Multi-stage Dockerfile for P2P Distributed System
+FROM node:18-alpine AS base
 
-# Set working directory
+# Install system dependencies
+RUN apk add --no-cache \
+    dumb-init \
+    curl \
+    ca-certificates
+
+# Create app directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies
-# RUN npm ci --only=production
-RUN npm ci
+# RUN npm ci --only=production && npm cache clean --force
+RUN npm ci && npm cache clean --force
 
-# Copy source code
-COPY . .
+# Copy application code
+COPY backend/ ./backend/
+COPY src/ ./src/
+COPY index.html ./
+COPY vite.config.ts ./
+COPY tailwind.config.js ./
+COPY postcss.config.js ./
 
-# Build the application
-RUN npm run build
-RUN npm run build:server
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S p2puser -u 1001
 
-# Production stage
-FROM node:18-alpine AS production
+# Change ownership of app directory
+RUN chown -R p2puser:nodejs /app
+USER p2puser
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
-
-# Create app user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
-
-# Set working directory
-WORKDIR /app
-
-# Copy built application
-COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
-
-# Create uploads directory
-RUN mkdir -p uploads && chown nodejs:nodejs uploads
-
-# Switch to non-root user
-USER nodejs
-
-# Expose port
-EXPOSE 3000
+# Expose ports
+EXPOSE 8080 8000 3478 3479
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node dist/server/healthcheck.js
+    CMD curl -f http://localhost:8080/health || exit 1
 
-# Start the application
+# Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/server/index.js"]
+
+# Default command (can be overridden)
+CMD ["node", "backend/signaling-server.js"]
