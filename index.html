@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P File Sharing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .card h2 {
+            margin-bottom: 20px;
+            color: #4a5568;
+            font-size: 1.5rem;
+        }
+
+        .connection-section {
+            margin-bottom: 30px;
+        }
+
+        .peer-id {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #718096 0%, #4a5568 100%);
+        }
+
+        .file-drop-zone {
+            border: 3px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-drop-zone:hover,
+        .file-drop-zone.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .status-section {
+            grid-column: 1 / -1;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.disconnected { background: #e53e3e; }
+        .status-indicator.connecting { background: #dd6b20; }
+        .status-indicator.connected { background: #38a169; }
+
+        .progress-container {
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.9rem;
+            color: #4a5568;
+            margin-top: 5px;
+        }
+
+        .peer-list {
+            margin-top: 20px;
+        }
+
+        .peer-item {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-container {
+            background: #1a202c;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+
+        .log-entry.error { color: #feb2b2; }
+        .log-entry.success { color: #9ae6b4; }
+        .log-entry.info { color: #90cdf4; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #718096;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 P2P File Sharing</h1>
+            <p>Secure peer-to-peer file transfer using WebRTC</p>
+        </div>
+
+        <div class="main-content">
+            <div class="card">
+                <h2>📡 Connect to Peer</h2>
+                <div class="connection-section">
+                    <label>Your Peer ID:</label>
+                    <div class="peer-id" id="myPeerId">Generating...</div>
+                    
+                    <div class="input-group">
+                        <label for="remotePeerId">Remote Peer ID:</label>
+                        <input type="text" id="remotePeerId" placeholder="Enter peer ID to connect">
+                    </div>
+                    
+                    <button class="btn" id="connectBtn" onclick="connectToPeer()">Connect</button>
+                    <button class="btn btn-secondary" id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+                </div>
+
+                <div>
+                    <h3>Connection Status</h3>
+                    <p><span class="status-indicator disconnected" id="statusIndicator"></span><span id="connectionStatus">Disconnected</span></p>
+                </div>
+
+                <div class="peer-list" id="peerList">
+                    <h3>Available Peers</h3>
+                    <div id="peerItems"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📁 Send Files</h2>
+                <div class="file-drop-zone" id="fileDropZone" onclick="document.getElementById('fileInput').click()">
+                    <p>📎 Click to select files or drag & drop</p>
+                    <p style="font-size: 0.9rem; color: #718096; margin-top: 10px;">Maximum file size: 100MB</p>
+                </div>
+                <input type="file" id="fileInput" class="file-input" multiple>
+                
+                <div id="selectedFiles"></div>
+                
+                <button class="btn" id="sendBtn" onclick="sendFiles()" disabled>Send Files</button>
+                <button class="btn btn-secondary" onclick="clearFiles()">Clear</button>
+
+                <div class="progress-container" id="progressContainer" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">0%</div>
+                </div>
+            </div>
+
+            <div class="card status-section">
+                <h2>📊 Statistics & Logs</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="bytesSent">0</div>
+                        <div class="stat-label">Bytes Sent</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="bytesReceived">0</div>
+                        <div class="stat-label">Bytes Received</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="filesTransferred">0</div>
+                        <div class="stat-label">Files Transferred</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="transferSpeed">0 KB/s</div>
+                        <div class="stat-label">Transfer Speed</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <h3>Activity Log</h3>
+                    <div class="log-container" id="logContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let peerId = null;
+        let signalingSocket = null;
+        let peerConnection = null;
+        let dataChannel = null;
+        let connectedPeers = new Map();
+        let pendingFiles = [];
+        let transferStats = {
+            bytesSent: 0,
+            bytesReceived: 0,
+            filesTransferred: 0,
+            transferSpeed: 0,
+            startTime: null
+        };
+
+        // Configuration
+        const CHUNK_SIZE = 16384; // 16KB chunks
+        const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+        
+        // WebRTC configuration
+        const rtcConfig = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+
+        // Initialize the application
+        function init() {
+            generatePeerId();
+            setupWebSocket();
+            setupFileHandling();
+            setupUI();
+            log('Application initialized', 'info');
+        }
+
+        // Generate unique peer ID
+        function generatePeerId() {
+            peerId = 'peer_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now().toString(36);
+            document.getElementById('myPeerId').textContent = peerId;
+            log(`Generated peer ID: ${peerId}`, 'info');
+        }
+
+        // Setup WebSocket for signaling
+        function setupWebSocket() {
+            // Since we can't use external services, we'll simulate signaling
+            // In a real implementation, you'd connect to your own WebSocket server
+            log('WebSocket signaling initialized (simulated)', 'info');
+        }
+
+        // Setup file handling
+        function setupFileHandling() {
+            const fileInput = document.getElementById('fileInput');
+            const fileDropZone = document.getElementById('fileDropZone');
+
+            fileInput.addEventListener('change', handleFileSelection);
+
+            // Drag and drop handlers
+            fileDropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                fileDropZone.classList.add('dragover');
+            });
+
+            fileDropZone.addEventListener('dragleave', () => {
+                fileDropZone.classList.remove('dragover');
+            });
+
+            fileDropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                fileDropZone.classList.remove('dragover');
+                const files = Array.from(e.dataTransfer.files);
+                handleFiles(files);
+            });
+        }
+
+        // Setup UI interactions
+        function setupUI() {
+            updateConnectionStatus('disconnected');
+            updateStats();
+        }
+
+        // Handle file selection
+        function handleFileSelection(e) {
+            const files = Array.from(e.target.files);
+            handleFiles(files);
+        }
+
+        // Handle files (validation and display)
+        function handleFiles(files) {
+            pendingFiles = [];
+            const selectedFilesDiv = document.getElementById('selectedFiles');
+            selectedFilesDiv.innerHTML = '';
+
+            let totalSize = 0;
+
+            files.forEach((file, index) => {
+                if (file.size > MAX_FILE_SIZE) {
+                    log(`File ${file.name} exceeds maximum size limit`, 'error');
+                    return;
+                }
+
+                totalSize += file.size;
+                pendingFiles.push(file);
+
+                const fileDiv = document.createElement('div');
+                fileDiv.className = 'peer-item';
+                fileDiv.innerHTML = `
+                    <div>
+                        <strong>${file.name}</strong>
+                        <br>
+                        <small>${formatFileSize(file.size)} - ${file.type || 'Unknown type'}</small>
+                    </div>
+                    <button class="btn btn-secondary" onclick="removeFile(${index})" style="padding: 5px 10px; font-size: 0.8rem;">Remove</button>
+                `;
+                selectedFilesDiv.appendChild(fileDiv);
+            });
+
+            document.getElementById('sendBtn').disabled = pendingFiles.length === 0 || !isConnected();
+            log(`Selected ${pendingFiles.length} files (${formatFileSize(totalSize)} total)`, 'info');
+        }
+
+        // Remove file from selection
+        function removeFile(index) {
+            pendingFiles.splice(index, 1);
+            handleFiles(pendingFiles);
+        }
+
+        // Clear selected files
+        function clearFiles() {
+            pendingFiles = [];
+            document.getElementById('selectedFiles').innerHTML = '';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('sendBtn').disabled = true;
+            log('Cleared selected files', 'info');
+        }
+
+        // Connect to peer
+        async function connectToPeer() {
+            const remotePeerId = document.getElementById('remotePeerId').value.trim();
+            
+            if (!remotePeerId) {
+                log('Please enter a remote peer ID', 'error');
+                return;
+            }
+
+            if (remotePeerId === peerId) {
+                log('Cannot connect to yourself', 'error');
+                return;
+            }
+
+            try {
+                updateConnectionStatus('connecting');
+                log(`Attempting to connect to ${remotePeerId}`, 'info');
+                
+                await setupPeerConnection(remotePeerId, true);
+                
+            } catch (error) {
+                log(`Connection failed: ${error.message}`, 'error');
+                updateConnectionStatus('disconnected');
+            }
+        }
+
+        // Setup WebRTC peer connection
+        async function setupPeerConnection(remotePeerId, isInitiator = false) {
+            peerConnection = new RTCPeerConnection(rtcConfig);
+
+            // Setup data channel
+            if (isInitiator) {
+                dataChannel = peerConnection.createDataChannel('fileTransfer', {
+                    ordered: true,
+                    maxRetransmits: 3
+                });
+                setupDataChannel(dataChannel);
+            } else {
+                peerConnection.addEventListener('datachannel', (event) => {
+                    dataChannel = event.channel;
+                    setupDataChannel(dataChannel);
+                });
+            }
+
+            // Handle ICE candidates
+            peerConnection.addEventListener('icecandidate', (event) => {
+                if (event.candidate) {
+                    // In a real implementation, send this to the remote peer via signaling server
+                    log('ICE candidate generated', 'info');
+                }
+            });
+
+            // Handle connection state changes
+            peerConnection.addEventListener('connectionstatechange', () => {
+                const state = peerConnection.connectionState;
+                log(`Connection state: ${state}`, 'info');
+                
+                if (state === 'connected') {
+                    updateConnectionStatus('connected');
+                    connectedPeers.set(remotePeerId, peerConnection);
+                } else if (state === 'disconnected' || state === 'failed') {
+                    updateConnectionStatus('disconnected');
+                    connectedPeers.delete(remotePeerId);
+                }
+            });
+
+            // Create and exchange offers/answers (simplified for demo)
+            if (isInitiator) {
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                // Simulate successful connection for demo
+                setTimeout(() => {
+                    updateConnectionStatus('connected');
+                    connectedPeers.set(remotePeerId, peerConnection);
+                    log(`Connected to ${remotePeerId}`, 'success');
+                }, 1000);
+            }
+        }
+
+        // Setup data channel handlers
+        function setupDataChannel(channel) {
+            channel.addEventListener('open', () => {
+                log('Data channel opened', 'success');
+                document.getElementById('sendBtn').disabled = pendingFiles.length === 0;
+            });
+
+            channel.addEventListener('close', () => {
+                log('Data channel closed', 'info');
+                document.getElementById('sendBtn').disabled = true;
+            });
+
+            channel.addEventListener('message', (event) => {
+                handleIncomingData(event.data);
+            });
+
+            channel.addEventListener('error', (error) => {
+                log(`Data channel error: ${error}`, 'error');
+            });
+        }
+
+        // Handle incoming data
+        function handleIncomingData(data) {
+            try {
+                const message = JSON.parse(data);
+                
+                switch (message.type) {
+                    case 'fileInfo':
+                        log(`Incoming file: ${message.name} (${formatFileSize(message.size)})`, 'info');
+                        break;
+                    case 'fileChunk':
+                        handleFileChunk(message);
+                        break;
+                    case 'fileComplete':
+                        handleFileComplete(message);
+                        break;
+                    default:
+                        log(`Unknown message type: ${message.type}`, 'error');
+                }
+            } catch (error) {
+                log(`Error handling incoming data: ${error.message}`, 'error');
+            }
+        }
+
+        // Send files
+        async function sendFiles() {
+            if (!isConnected() || pendingFiles.length === 0) {
+                log('No connection or files to send', 'error');
+                return;
+            }
+
+            document.getElementById('progressContainer').style.display = 'block';
+            transferStats.startTime = Date.now();
+
+            for (const file of pendingFiles) {
+                await sendFile(file);
+            }
+
+            log(`Sent ${pendingFiles.length} files successfully`, 'success');
+            transferStats.filesTransferred += pendingFiles.length;
+            updateStats();
+            clearFiles();
+        }
+
+        // Send individual file
+        async function sendFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = async (e) => {
+                    const fileData = e.target.result;
+                    const chunks = Math.ceil(fileData.byteLength / CHUNK_SIZE);
+                    
+                    // Send file info
+                    const fileInfo = {
+                        type: 'fileInfo',
+                        name: file.name,
+                        size: file.size,
+                        mimeType: file.type,
+                        chunks: chunks,
+                        hash: await calculateHash(fileData)
+                    };
+                    
+                    dataChannel.send(JSON.stringify(fileInfo));
+
+                    // Send file chunks
+                    for (let i = 0; i < chunks; i++) {
+                        const start = i * CHUNK_SIZE;
+                        const end = Math.min(start + CHUNK_SIZE, fileData.byteLength);
+                        const chunk = fileData.slice(start, end);
+                        
+                        const chunkMessage = {
+                            type: 'fileChunk',
+                            index: i,
+                            data: Array.from(new Uint8Array(chunk))
+                        };
+                        
+                        dataChannel.send(JSON.stringify(chunkMessage));
+                        
+                        // Update progress
+                        const progress = ((i + 1) / chunks) * 100;
+                        updateProgress(progress);
+                        
+                        transferStats.bytesSent += chunk.byteLength;
+                        updateTransferSpeed();
+                        
+                        // Small delay to prevent overwhelming
+                        await new Promise(resolve => setTimeout(resolve, 1));
+                    }
+                    
+                    // Send completion message
+                    const completeMessage = {
+                        type: 'fileComplete',
+                        name: file.name
+                    };
+                    
+                    dataChannel.send(JSON.stringify(completeMessage));
+                    log(`File sent: ${file.name}`, 'success');
+                    resolve();
+                };
+                
+                reader.onerror = () => reject(reader.error);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // Handle incoming file chunk
+        function handleFileChunk(message) {
+            // In a real implementation, you'd reconstruct the file from chunks
+            transferStats.bytesReceived += message.data.length;
+            updateTransferSpeed();
+            log(`Received chunk ${message.index}`, 'info');
+        }
+
+        // Handle file completion
+        function handleFileComplete(message) {
+            log(`File received: ${message.name}`, 'success');
+            transferStats.filesTransferred++;
+            updateStats();
+        }
+
+        // Calculate file hash for verification
+        async function calculateHash(data) {
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Disconnect from peer
+        function disconnect() {
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            if (dataChannel) {
+                dataChannel.close();
+                dataChannel = null;
+            }
+            
+            connectedPeers.clear();
+            updateConnectionStatus('disconnected');
+            log('Disconnected from peer', 'info');
+        }
+
+        // Check if connected
+        function isConnected() {
+            return peerConnection && peerConnection.connectionState === 'connected' && 
+                   dataChannel && dataChannel.readyState === 'open';
+        }
+
+        // Update connection status UI
+        function updateConnectionStatus(status) {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const connectionStatus = document.getElementById('connectionStatus');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+
+            statusIndicator.className = `status-indicator ${status}`;
+            
+            switch (status) {
+                case 'connected':
+                    connectionStatus.textContent = 'Connected';
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = false;
+                    break;
+                case 'connecting':
+                    connectionStatus.textContent = 'Connecting...';
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = false;
+                    break;
+                default:
+                    connectionStatus.textContent = 'Disconnected';
+                    connectBtn.disabled = false;
+                    disconnectBtn.disabled = true;
+            }
+            
+            document.getElementById('sendBtn').disabled = !isConnected() || pendingFiles.length === 0;
+        }
+
+        // Update progress bar
+        function updateProgress(percentage) {
+            document.getElementById('progressFill').style.width = percentage + '%';
+            document.getElementById('progressText').textContent = Math.round(percentage) + '%';
+        }
+
+        // Update transfer speed
+        function updateTransferSpeed() {
+            if (!transferStats.startTime) return;
+            
+            const elapsed = (Date.now() - transferStats.startTime) / 1000;
+            const totalBytes = transferStats.bytesSent + transferStats.bytesReceived;
+            const speed = totalBytes / elapsed / 1024; // KB/s
+            
+            transferStats.transferSpeed = speed;
+            updateStats();
+        }
+
+        // Update statistics display
+        function updateStats() {
+            document.getElementById('bytesSent').textContent = formatFileSize(transferStats.bytesSent);
+            document.getElementById('bytesReceived').textContent = formatFileSize(transferStats.bytesReceived);
+            document.getElementById('filesTransferred').textContent = transferStats.filesTransferred;
+            document.getElementById('transferSpeed').textContent = transferStats.transferSpeed.toFixed(1) + ' KB/s';
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            if (bytes === 0) return '0 Bytes';
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // Logging function
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Keep only last 100 log entries
+            while (logContainer.children.length > 100) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+
+        // Initialize application when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

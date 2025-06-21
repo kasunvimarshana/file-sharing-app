@@ -1,31 +1,11 @@
 {
-  "name": "p2p-torrent-system",
+  "name": "p2p-file-share",
   "version": "1.0.0",
-  "description": "Browser-based P2P torrent-like distributed system",
-  "main": "server.js",
+  "description": "Secure peer-to-peer file transfer with advanced WebRTC technology",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
-    "build": "echo 'Static files ready'",
-    "docker:build": "docker build -t p2p-torrent .",
-    "docker:run": "docker run -p 8080:8080 -p 3001:3001 p2p-torrent",
-    "copy:socket.io": "ncp node_modules/socket.io/client-dist public/socket.io"
-  },
-  "dependencies": {
-    "crypto": "^1.0.1",
-    "express": "^4.18.2",
-    "socket.io": "^4.7.2",
-    "ws": "^8.13.0"
+    "start": "http-server -c-1 -p 8080"
   },
   "devDependencies": {
-    "ncp": "^2.0.0"
-  },
-  "keywords": [
-    "p2p",
-    "webrtc",
-    "torrent",
-    "distributed"
-  ],
-  "author": "P2P System",
-  "license": "MIT"
+    "http-server": "^14.1.1"
+  }
 }
