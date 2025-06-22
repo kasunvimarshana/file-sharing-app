@@ -9,32 +9,35 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.static(path.join(__dirname, '../app')));
+
 const server = http.createServer(app);
+const wss = new WebSocketServer({ server });
 
 const PORT = process.env.PORT || 8080;
 
-const wss = new WebSocketServer({ server });
-
-// Maps peerId -> websocket connection
+// Map peerId -> WebSocket
 const peers = new Map();
 
 wss.on('connection', (ws) => {
   let peerId = null;
 
-  ws.on('message', (msg) => {
+  ws.on('message', (message) => {
     try {
-      const data = JSON.parse(msg);
+      const data = JSON.parse(message);
+
       if (data.register) {
         peerId = data.register;
         peers.set(peerId, ws);
         console.log(`Peer registered: ${peerId}`);
         return;
       }
+
+      // Relay signaling data to intended peer
       if (data.to && peers.has(data.to)) {
         peers.get(data.to).send(JSON.stringify(data));
       }
-    } catch (e) {
-      console.error('Failed to parse message:', e);
+    } catch (err) {
+      console.error('Failed to parse message', err);
     }
   });
 
@@ -47,5 +50,5 @@ wss.on('connection', (ws) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`Signaling server listening at http://localhost:${PORT}`);
 });

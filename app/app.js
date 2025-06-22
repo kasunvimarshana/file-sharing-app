@@ -9,16 +9,15 @@ class FileSharingApp {
     this.peerService = new PeerService(this.peerId, this.signalingService, this);
     this.fileService = new FileService(this);
 
-    this._setupUI();
+    this._initUI();
     this.signalingService.connect();
 
     this._log(`App initialized with Peer ID: ${this.peerId}`, 'success');
     document.getElementById('myPeerId').textContent = this.peerId;
   }
 
-  _setupUI() {
-    const connectBtn = document.getElementById('connectButton');
-    connectBtn.addEventListener('click', () => {
+  _initUI() {
+    document.getElementById('connectButton').addEventListener('click', () => {
       const remoteId = document.getElementById('remotePeerId').value.trim();
       if (!remoteId) {
         this._log('Please enter a remote peer ID', 'error');
@@ -27,20 +26,20 @@ class FileSharingApp {
       this.peerService.connectToPeer(remoteId);
     });
 
-    const fileInput = document.getElementById('fileInput');
-    fileInput.addEventListener('change', (e) => {
+    document.getElementById('fileInput').addEventListener('change', e => {
       this._sendFiles(Array.from(e.target.files));
+      e.target.value = '';
     });
 
     const dropZone = document.getElementById('fileDropZone');
-    dropZone.addEventListener('dragover', (e) => {
+    dropZone.addEventListener('dragover', e => {
       e.preventDefault();
       dropZone.classList.add('dragover');
     });
     dropZone.addEventListener('dragleave', () => {
       dropZone.classList.remove('dragover');
     });
-    dropZone.addEventListener('drop', (e) => {
+    dropZone.addEventListener('drop', e => {
       e.preventDefault();
       dropZone.classList.remove('dragover');
       this._sendFiles(Array.from(e.dataTransfer.files));

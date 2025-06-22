@@ -6,12 +6,11 @@ export class SignalingService {
   }
 
   connect() {
-    // this.ws = new WebSocket(`ws://${location.host}`);
-    this.ws = new WebSocket(`ws://${location.hostname}:8080`);
+    this.ws = new WebSocket(`ws://${location.host}`);
     this.ws.addEventListener('open', () => {
       this.ws.send(JSON.stringify({ register: this.peerId }));
     });
-    this.ws.addEventListener('message', (event) => {
+    this.ws.addEventListener('message', event => {
       const data = JSON.parse(event.data);
       if (this.callbacks['signal']) {
         this.callbacks['signal'](data);

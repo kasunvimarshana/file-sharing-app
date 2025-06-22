@@ -17,10 +17,9 @@ export class FileService {
     reader.onload = (e) => {
       const arrayBuffer = e.target.result;
 
-      // Send metadata
+      // Send metadata first
       dataChannel.send(JSON.stringify({ meta: { name: file.name, size: file.size, type: file.type } }));
 
-      // Send chunks
       let offset = 0;
       const sendChunk = () => {
         if (offset < arrayBuffer.byteLength) {
@@ -43,17 +42,11 @@ export class FileService {
         const msg = JSON.parse(data);
         if (msg.meta) {
           const { name, size, type } = msg.meta;
-          this.currentFiles[name] = {
-            name,
-            size,
-            type,
-            data: [],
-            receivedBytes: 0,
-          };
+          this.currentFiles[name] = { name, size, type, data: [], receivedBytes: 0 };
           this.app.showNotification(`Receiving "${name}" (${this._formatBytes(size)})...`, 'info');
         }
       } catch {
-        // Not JSON, ignore
+        // Ignore invalid JSON
       }
       return;
     }

@@ -6,9 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node server/signaling.server.js",
-    "dev": "nodemon server/signaling.server.js",
-    "start:fe": "http-server -c-1 -p 8081",
-    "dev:fe": "http-server -c-1 -p 8081"
+    "dev": "nodemon server/signaling.server.js"
   },
   "engines": {
     "node": ">=18.0.0"
