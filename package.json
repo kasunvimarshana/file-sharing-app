@@ -2,11 +2,11 @@
   "name": "p2p-file-share",
   "version": "1.0.0",
   "description": "Pure JavaScript P2P file sharing app with WebSocket signaling",
-  "main": "server/server.js",
+  "main": "server/signaling.server.js",
   "type": "module",
   "scripts": {
-    "start": "node server/server.js",
-    "dev": "nodemon server/server.js",
+    "start": "node server/signaling.server.js",
+    "dev": "nodemon server/signaling.server.js",
     "start:fe": "http-server -c-1 -p 8081",
     "dev:fe": "http-server -c-1 -p 8081"
   },

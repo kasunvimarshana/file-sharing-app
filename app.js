@@ -2,34 +2,29 @@ import { SignalingService } from './services/signaling.service.js';
 import { PeerService } from './services/peer.service.js';
 import { FileService } from './services/file.service.js';
 
-class FileShareApp {
+class FileSharingApp {
   constructor() {
-    this.peerId = `FSP_${Math.random().toString(36).slice(2, 12)}_${Date.now().toString(36)}`;
-
-    this.signaling = new SignalingService(this.peerId);
-    this.peerService = new PeerService(this.peerId, this.signaling, this);
+    this.peerId = `FSP_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+    this.signalingService = new SignalingService(this.peerId);
+    this.peerService = new PeerService(this.peerId, this.signalingService, this);
     this.fileService = new FileService(this);
 
-    this._initUI();
-    this.signaling.connect();
-    this._log(`System initialized with Peer ID: ${this.peerId}`, 'success');
+    this._setupUI();
+    this.signalingService.connect();
+
+    this._log(`App initialized with Peer ID: ${this.peerId}`, 'success');
     document.getElementById('myPeerId').textContent = this.peerId;
   }
 
-  _initUI() {
-    document.getElementById('connectButton').addEventListener('click', async () => {
+  _setupUI() {
+    const connectBtn = document.getElementById('connectButton');
+    connectBtn.addEventListener('click', () => {
       const remoteId = document.getElementById('remotePeerId').value.trim();
       if (!remoteId) {
-        this._log('Please enter a peer ID or room name.', 'error');
+        this._log('Please enter a remote peer ID', 'error');
         return;
       }
-
-      if (remoteId.startsWith('ROOM_')) {
-        this.signaling.joinRoom(remoteId);
-        this._log(`Joined room ${remoteId}`, 'info');
-      } else {
-        await this.peerService.connectToPeer(remoteId);
-      }
+      this.peerService.connectToPeer(remoteId);
     });
 
     const fileInput = document.getElementById('fileInput');
@@ -42,7 +37,7 @@ class FileShareApp {
       e.preventDefault();
       dropZone.classList.add('dragover');
     });
-    dropZone.addEventListener('dragleave', (e) => {
+    dropZone.addEventListener('dragleave', () => {
       dropZone.classList.remove('dragover');
     });
     dropZone.addEventListener('drop', (e) => {
@@ -55,11 +50,10 @@ class FileShareApp {
   _sendFiles(files) {
     const channel = this.peerService.getActiveDataChannel();
     if (!channel) {
-      this._log('No open data channel. Connect to a peer first.', 'error');
+      this._log('No active data channel. Connect to a peer first.', 'error');
       return;
     }
-
-    files.forEach((file) => {
+    files.forEach(file => {
       this._log(`Sending file "${file.name}" (${this._formatBytes(file.size)})...`, 'info');
       this.fileService.sendFile(channel, file);
     });
@@ -74,7 +68,7 @@ class FileShareApp {
     logs.scrollTop = logs.scrollHeight;
   }
 
-  showNotification(message, type) {
+  showNotification(message, type = 'info') {
     this._log(message, type);
   }
 
@@ -89,4 +83,4 @@ class FileShareApp {
   }
 }
 
-window.app = new FileShareApp();
+window.app = new FileSharingApp();
