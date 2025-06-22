@@ -1,11 +1,9 @@
 export class FileService {
   constructor(app) {
     this.app = app;
-    this.chunkSize = 16000;
 
-    this.currentFile = null;
-    this.currentFileData = [];
-    this.currentFileReceived = 0;
+    this.chunkSize = 16000;
+    this.currentFiles = new Map();
   }
 
   sendFile(dataChannel, file) {
@@ -14,18 +12,16 @@ export class FileService {
       return;
     }
 
-    this.app.showNotification(`Sending ${file.name} (${file.size} bytes)...`, 'info');
-
+    const id = Math.random().toString(36).substring(2, 10);
     const metadata = {
       type: 'file-metadata',
+      id,
       name: file.name,
-      size: file.size,
+      size: file.size
     };
-
     dataChannel.send(JSON.stringify(metadata));
 
     const reader = new FileReader();
-
     reader.onload = (e) => {
       const buffer = e.target.result;
 
@@ -36,7 +32,6 @@ export class FileService {
 
       this.app.showNotification(`Sent ${file.name}!`, 'success');
     };
-
     reader.readAsArrayBuffer(file);
   }
 
@@ -45,50 +40,45 @@ export class FileService {
       try {
         const parsed = JSON.parse(data);
         if (parsed.type === 'file-metadata') {
-          this._initializeIncomingFile(parsed.name, parsed.size);
+          this.currentFiles.set(parsed.id, {
+            id: parsed.id,
+            name: parsed.name,
+            size: parsed.size,
+            data: []
+          });
+          this.app.showNotification(`Receiving ${parsed.name} (${parsed.size} bytes)...`, 'info');
         }
-      } catch (error) {
-        this.app.showNotification(`Invalid metadata received: ${error}`, 'error');
+      } catch {
+        this.app.showNotification('Invalid metadata received', 'error');
       }
     } else {
-      this._handleFileChunk(data);
+      for (const [id, file] of this.currentFiles.entries()) {
+        if (file.data.length < file.size) {
+          file.data.push(data);
+          const receivedBytes = file.data.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+          if (receivedBytes >= file.size) {
+            this._saveReceivedFile(file);
+            this.currentFiles.delete(id);
+            break;
+          }
+        }
+      }
     }
   }
 
-  _initializeIncomingFile(filename, size) {
-    this.currentFile = {
-      name: filename,
-      size,
-    };
-    this.currentFileData = [];
-    this.currentFileReceived = 0;
-
-    this.app.showNotification(`Receiving ${filename} (${size} bytes)...`, 'info');
-  }
-
-  _handleFileChunk(data) {
-    this.currentFileData.push(data);
-    this.currentFileReceived += data.byteLength;
-
-    this.app.showNotification(`Received chunk (${data.byteLength} bytes)...`, 'info');
-
-    if (this.currentFileReceived >= this.currentFile.size) {
-      this._saveReceivedFile();
-    }
-  }
-
-  _saveReceivedFile() {
-    const blob = new Blob(this.currentFileData);
+  _saveReceivedFile(file) {
+    const blob = new Blob(file.data);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = this.currentFile.name;
-    a.click();
-
-    this.app.showNotification(`File ${this.currentFile.name} received and saved.`, 'success');
-
-    this.currentFile = null;
-    this.currentFileData = [];
-    this.currentFileReceived = 0;
+    a.download = file.name;
+    a.textContent = `💾 Download ${file.name}`;
+    a.style.display = 'block';
+    a.addEventListener('click', () => {
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    this.app.showNotification(`File ${file.name} received. Click link to download.`, 'success');
+    this.app.logEl.appendChild(a);
+    this.app.logEl.scrollTop = this.app.logEl.scrollHeight;
   }
 }

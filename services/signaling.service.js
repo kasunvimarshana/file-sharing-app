@@ -8,20 +8,9 @@ export class SignalingService {
     this.socket.addEventListener('open', () => {
       this.socket.send(JSON.stringify({ register: this.localId }));
     });
-
     this.socket.addEventListener('message', (event) => {
       const data = JSON.parse(event.data);
-      if (data.to === this.localId) {
-        this.onMessage(data);
-      }
-    });
-
-    this.socket.addEventListener('close', () => {
-      console.warn('Signaling server connection closed');
-    });
-
-    this.socket.addEventListener('error', (err) => {
-      console.error('Signaling server error:', err);
+      this.onMessage(data);
     });
   }
 

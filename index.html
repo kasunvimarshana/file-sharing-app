@@ -1,46 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Pure P2P File Share</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 2rem auto;
-      padding: 1rem;
-    }
-    .log {
-      border: 1px solid #ccc;
-      padding: 1rem;
-      height: 200px;
-      overflow-y: auto;
-      margin-top: 1rem;
-      background: #f9f9f9;
-      font-size: 0.9rem;
-      white-space: pre-wrap;
-    }
-    input, button {
-      margin: 0.5rem 0;
-      padding: 0.5rem;
-      font-size: 1rem;
-      width: 100%;
-      box-sizing: border-box;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>Pure P2P File Share Demo</title>
+<style>
+body { font-family: Arial, sans-serif; max-width: 600px; margin: 2rem auto; padding: 1rem; }
+.log { border: 1px solid #ccc; padding: 1rem; height: 200px; overflow-y: auto; margin: 1rem 0; background: #f9f9f9; font-size: 0.9rem; }
+input, button { padding: 0.5rem; font-size: 1rem; margin: 0.25rem 0; width: 100%; box-sizing: border-box; }
+a { display: block; margin: 0.25rem 0; color: blue; text-decoration: underline; cursor: pointer; }
+</style>
 </head>
 <body>
-  <h2>Pure P2P File Share Demo</h2>
-  <div><strong>Your ID:</strong> <span id="myId"></span></div>
-
-  <input id="remoteIdInput" placeholder="Enter remote peer ID" />
-  <button id="connectBtn">Connect</button>
-
-  <input type="file" id="fileInput" />
-  <button id="sendFileBtn">Send File</button>
-
-  <div class="log" id="log"></div>
-
-  <script type="module" src="./app.js"></script>
+<h2>Pure P2P File Share Demo</h2>
+<div><strong>My ID:</strong> <span id="myId"></span></div>
+<input id="remoteIdInput" placeholder="Enter Remote Peer ID">
+<button id="connectBtn">Connect</button>
+<input id="roomIdInput" placeholder="Enter Room ID">
+<button id="joinRoomBtn">Join Room</button>
+<input id="fileInput" type="file">
+<button id="sendFileBtn">Send File</button>
+<div class="log" id="log"></div>
+<script type="module" src="./app.js"></script>
 </body>
 </html>
