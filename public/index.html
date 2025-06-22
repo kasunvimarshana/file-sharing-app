@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P Torrent System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .file-input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 15px 20px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .file-input-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .button-primary {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .button-secondary {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #4ecdc4;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecdc4, #44a08d);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .peer-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .peer-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .peer-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .status-connected { background: #4ecdc4; color: white; }
+        .status-connecting { background: #f093fb; color: white; }
+        .status-disconnected { background: #ff6b6b; color: white; }
+
+        .log-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+
+        .log-info { color: #4ecdc4; }
+        .log-success { color: #44a08d; }
+        .log-warning { color: #f093fb; }
+        .log-error { color: #ff6b6b; }
+
+        .file-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border-left: 4px solid #4ecdc4;
+        }
+
+        .file-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .file-info {
+            font-size: 0.9em;
+            opacity: 0.8;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .chunk-grid {
+            display: grid;
+            grid-template-columns: repeat(20, 1fr);
+            gap: 2px;
+            margin: 10px 0;
+        }
+
+        .chunk {
+            height: 15px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .chunk-complete { background: #4ecdc4; }
+        .chunk-downloading { background: #f093fb; }
+        .chunk-missing { background: #ff6b6b; }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 P2P Torrent System</h1>
+            <p>Decentralized file sharing powered by WebRTC</p>
+        </div>
+
+        <!-- File Upload Section -->
+        <div class="card">
+            <h3>📁 Share Files</h3>
+            <div class="file-input-section">
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" class="file-input" multiple>
+                    <label for="fileInput" class="file-input-label">
+                        Choose Files to Share
+                    </label>
+                </div>
+                <button id="createTorrent" class="button button-primary" disabled>
+                    Create Torrent
+                </button>
+            </div>
+        </div>
+
+        <!-- Torrent Hash Input -->
+        <div class="card">
+            <h3>🔗 Download Files</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="torrentHash" placeholder="Enter torrent hash..." 
+                       style="flex: 1; padding: 12px; border: none; border-radius: 8px; background: rgba(255,255,255,0.1); color: white;">
+                <button id="downloadTorrent" class="button button-secondary">
+                    Download
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="card">
+            <h3>📊 Network Statistics</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="peerCount">0</div>
+                    <div class="stat-label">Connected Peers</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="uploadSpeed">0 KB/s</div>
+                    <div class="stat-label">Upload Speed</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="downloadSpeed">0 KB/s</div>
+                    <div class="stat-label">Download Speed</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="totalFiles">0</div>
+                    <div class="stat-label">Active Files</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Downloads/Uploads -->
+        <div class="card">
+            <h3>📥 Active Transfers</h3>
+            <div id="activeTransfers" class="file-list">
+                <div style="text-align: center; opacity: 0.6; padding: 20px;">
+                    No active transfers
+                </div>
+            </div>
+        </div>
+
+        <!-- Peer List -->
+        <div class="card">
+            <h3>👥 Connected Peers</h3>
+            <div id="peerList" class="peer-list">
+                <div style="text-align: center; opacity: 0.6; padding: 20px;">
+                    No peers connected
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="card">
+            <h3>📝 Activity Log</h3>
+            <div id="logContainer" class="log-container">
+                <div class="log-entry log-info">System initialized</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/p2p-client.js"></script>
+    <script src="js/torrent-manager.js"></script>
+    <script src="js/webrtc-manager.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

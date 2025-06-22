@@ -1,26 +1,31 @@
 {
-  "name": "p2p-file-share",
+  "name": "p2p-torrent-system",
   "version": "1.0.0",
-  "description": "Pure JavaScript P2P file sharing app with WebSocket signaling",
-  "main": "server/signaling.server.js",
-  "type": "module",
+  "description": "Browser-based P2P torrent-like distributed system",
+  "main": "server/server.js",
   "scripts": {
-    "start": "node server/signaling.server.js",
-    "dev": "nodemon server/signaling.server.js"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "start": "node server/server.js",
+    "dev": "node server/server.js",
+    "build": "echo 'Static files ready'",
+    "docker:build": "docker build -t p2p-torrent .",
+    "docker:run": "docker run -p 8080:8080 -p 3001:3001 p2p-torrent",
+    "copy:socket.io": "ncp node_modules/socket.io/client-dist public/socket.io"
   },
   "dependencies": {
-    "ws": "^8.17.1",
-    "express": "^4.19.2"
+    "crypto": "^1.0.1",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "ws": "^8.13.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4",
-    "http-server": "^14.1.1"
+    "ncp": "^2.0.0"
   },
-  "author": "Kasun",
+  "keywords": [
+    "p2p",
+    "webrtc",
+    "torrent",
+    "distributed"
+  ],
+  "author": "P2P System",
   "license": "MIT"
 }
-
-
