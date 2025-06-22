@@ -3,97 +3,126 @@ export class PeerService {
     this.localId = localId;
     this.signaling = signaling;
     this.app = app;
+    this.peerConnections = new Map();
+    this.dataChannels = new Map();
 
-    this.peers = new Map();
-    this.dataChannel = null;
-
-    this.signaling.on('signal', (data) => this.handleSignal(data));
+    this.signaling.on('signal', (data) => this._handleSignal(data));
   }
 
   async connectToPeer(remoteId) {
-    if (this.peers.has(remoteId)) {
+    if (this.peerConnections.has(remoteId)) {
       this.app.showNotification(`Already connected to ${remoteId}`, 'warning');
       return;
     }
-    const pc = this._createPeerConnection(remoteId);
-    this.peers.set(remoteId, { pc });
-    this.dataChannel = pc.createDataChannel('fileTransfer');
-    this._setupDataChannel(remoteId, this.dataChannel);
 
-    this.app.showNotification(`⏳ Creating offer for ${remoteId}...`, 'info');
+    const pc = this._createPeerConnection(remoteId);
+    this.peerConnections.set(remoteId, pc);
+
+    const dc = pc.createDataChannel('fileTransfer', { ordered: true });
+    this._setupDataChannel(remoteId, dc);
+
+    this.app.showNotification(`Creating offer to ${remoteId}...`, 'info');
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     this.signaling.send({ from: this.localId, to: remoteId, offer });
   }
 
-  async handleSignal(data) {
-    const { from, offer, answer, candidate } = data;
-
-    if (offer && from !== this.localId) {
-      this.app.showNotification(`📥 Received offer from ${from}. Creating answer...`, 'info');
-      const pc = this._createPeerConnection(from);
-      this.peers.set(from, { pc });
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const ans = await pc.createAnswer();
-      await pc.setLocalDescription(ans);
-      this.signaling.send({ from: this.localId, to: from, answer: ans });
-    }
-
-    if (answer && this.peers.has(from)) {
-      this.app.showNotification(`✅ Answer received from ${from}. Finalizing...`, 'success');
-      await this.peers.get(from).pc.setRemoteDescription(new RTCSessionDescription(answer));
-    }
-
-    if (candidate && this.peers.has(from)) {
-      await this.peers.get(from).pc.addIceCandidate(new RTCIceCandidate(candidate));
-    }
-  }
-
   _createPeerConnection(remoteId) {
-    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         this.signaling.send({ from: this.localId, to: remoteId, candidate: event.candidate });
       }
     };
+
     pc.ondatachannel = (event) => {
       this._setupDataChannel(remoteId, event.channel);
     };
+
     pc.onconnectionstatechange = () => {
       switch (pc.connectionState) {
-        case 'new':
-        case 'connecting':
-          this.app.showNotification(`⏳ Connecting to ${remoteId}...`, 'info');
-          break;
         case 'connected':
-          this.app.showNotification(`✅ Connected to ${remoteId}!`, 'success');
+          this.app.showNotification(`Connected to ${remoteId}`, 'success');
           break;
         case 'disconnected':
         case 'failed':
-          this.app.showNotification(`❌ Disconnected from ${remoteId}.`, 'error');
+          this.app.showNotification(`Disconnected from ${remoteId}`, 'error');
           break;
         case 'closed':
-          this.app.showNotification(`🔴 Connection to ${remoteId} closed.`, 'warning');
+          this.app.showNotification(`Connection closed with ${remoteId}`, 'warning');
           break;
       }
     };
+
     return pc;
   }
 
-  _setupDataChannel(remoteId, channel) {
-    this.dataChannel = channel;
+  async _handleSignal(data) {
+    const { from, to, offer, answer, candidate } = data;
+    if (to !== this.localId) return;
 
-    channel.onerror = (error) =>
-      this.app.showNotification(`❌ Data channel error: ${error.message}`, 'error');
-    channel.onmessage = (event) =>
-      this.app.fileService.handleIncomingData(event.data);
-    channel.onopen = () =>
-      this.app.showNotification(`✅ Data channel with ${remoteId} is open. You can send files now.`, 'success');
-    channel.onclose = () =>
-      this.app.showNotification(`⚠️ Data channel with ${remoteId} has closed.`, 'warning');
+    if (offer) {
+      this.app.showNotification(`Received offer from ${from}`, 'info');
+      let pc = this.peerConnections.get(from);
+      if (!pc) {
+        pc = this._createPeerConnection(from);
+        this.peerConnections.set(from, pc);
+      }
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answerDesc = await pc.createAnswer();
+      await pc.setLocalDescription(answerDesc);
+      this.signaling.send({ from: this.localId, to: from, answer: answerDesc });
+    }
+
+    if (answer) {
+      const pc = this.peerConnections.get(from);
+      if (pc) {
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      }
+    }
+
+    if (candidate) {
+      const pc = this.peerConnections.get(from);
+      if (pc) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.error('Error adding ICE candidate', e);
+        }
+      }
+    }
   }
 
-  getActiveChannel() {
-    return this.dataChannel && this.dataChannel.readyState === 'open' ? this.dataChannel : null;
+  _setupDataChannel(remoteId, dataChannel) {
+    this.dataChannels.set(remoteId, dataChannel);
+    dataChannel.binaryType = 'arraybuffer';
+
+    dataChannel.onopen = () => {
+      this.app.showNotification(`Data channel open with ${remoteId}`, 'success');
+    };
+
+    dataChannel.onclose = () => {
+      this.app.showNotification(`Data channel closed with ${remoteId}`, 'warning');
+      this.dataChannels.delete(remoteId);
+    };
+
+    dataChannel.onerror = (e) => {
+      this.app.showNotification(`Data channel error with ${remoteId}: ${e.message}`, 'error');
+    };
+
+    dataChannel.onmessage = (event) => {
+      this.app.fileService.handleIncomingData(event.data);
+    };
+  }
+
+  getActiveDataChannel() {
+    // Return first open data channel
+    for (const dc of this.dataChannels.values()) {
+      if (dc.readyState === 'open') return dc;
+    }
+    return null;
   }
 }

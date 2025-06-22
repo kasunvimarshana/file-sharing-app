@@ -1,21 +1,27 @@
 export class SignalingService {
   constructor(peerId) {
     this.peerId = peerId;
-    this.socket = null;
+    this.ws = null;
     this.callbacks = {};
   }
 
   connect() {
-    // this.socket = new WebSocket(`ws://${location.host}`);
-    this.socket = new WebSocket(`ws://${location.hostname}:8080`);
-    this.socket.addEventListener('open', () => {
-      this.socket.send(JSON.stringify({ register: this.peerId }));
+    // this.ws = new WebSocket(`ws://${location.host}`);
+    this.ws = new WebSocket(`ws://${location.hostname}:8080`);
+
+    this.ws.addEventListener('open', () => {
+      this.ws.send(JSON.stringify({ register: this.peerId }));
     });
-    this.socket.addEventListener('message', (event) => {
+
+    this.ws.addEventListener('message', (event) => {
       const data = JSON.parse(event.data);
-      if (this.callbacks.signal) {
-        this.callbacks.signal(data);
+      if (this.callbacks['signal']) {
+        this.callbacks['signal'](data);
       }
+    });
+
+    this.ws.addEventListener('close', () => {
+      console.warn('Signaling connection closed.');
     });
   }
 
@@ -24,7 +30,9 @@ export class SignalingService {
   }
 
   send(data) {
-    this.socket.send(JSON.stringify(data));
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(data));
+    }
   }
 
   joinRoom(room) {

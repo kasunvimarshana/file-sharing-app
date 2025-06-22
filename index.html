@@ -1,28 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Pure P2P File Share</title>
-<style>
-body { font: 14px Arial; padding: 20px; }
-#logs { max-height: 150px; overflow-y: auto; background: #f9f9f9; padding: 5px; border: 1px solid #ccc; }
-</style>
+  <meta charset="UTF-8" />
+  <title>P2P File Share</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #logs { max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-top: 10px; background: #f9f9f9; }
+    .log-info { color: blue; }
+    .log-success { color: green; }
+    .log-error { color: red; }
+    .download-link { display: block; margin-top: 5px; color: darkgreen; }
+    #fileDropZone { border: 2px dashed #ccc; padding: 20px; text-align: center; margin-top: 10px; cursor: pointer; }
+    #fileDropZone.dragover { border-color: #333; background: #eef; }
+  </style>
 </head>
 <body>
-<h1>🌐 Pure P2P File Share</h1>
-<div>
-  <div>My Peer ID: <span id="myPeerId"></span></div>
-  <input id="remotePeerId" placeholder="Enter peer ID or room name" />
-  <button id="connectButton">Connect</button>
-</div>
-<div>
-  <input type="file" id="fileInput" multiple />
-  <div id="fileDropZone" style="border:2px dashed #ccc; padding:10px; margin:10px 0;">
-    Drop files here
-  </div>
-</div>
-<div id="logs"></div>
+  <h1>P2P File Sharing System</h1>
 
-<script type="module" src="./app.js"></script>
+  <p>Your Peer ID: <span id="myPeerId"></span></p>
+
+  <input id="remotePeerId" placeholder="Enter peer ID or ROOM_<name>" style="width:300px" />
+  <button id="connectButton">Connect</button>
+
+  <div>
+    <input type="file" id="fileInput" multiple />
+  </div>
+
+  <div id="fileDropZone">Drag & Drop files here</div>
+
+  <div id="logs"></div>
+
+  <script type="module" src="./app.js"></script>
 </body>
 </html>

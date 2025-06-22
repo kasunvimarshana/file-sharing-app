@@ -4,37 +4,39 @@ import { FileService } from './services/file.service.js';
 
 class FileShareApp {
   constructor() {
-    this.peerId = `FSP_${Math.random().toString(36).substring(2, 12)}_${Date.now().toString(36)}`;
+    this.peerId = `FSP_${Math.random().toString(36).slice(2, 12)}_${Date.now().toString(36)}`;
+
     this.signaling = new SignalingService(this.peerId);
     this.peerService = new PeerService(this.peerId, this.signaling, this);
     this.fileService = new FileService(this);
-    this.init();
-  }
 
-  init() {
-    this.showNotification(`System initialized.`, 'success');
-    this.registerUI();
+    this._initUI();
     this.signaling.connect();
+    this._log(`System initialized with Peer ID: ${this.peerId}`, 'success');
     document.getElementById('myPeerId').textContent = this.peerId;
   }
 
-  registerUI() {
+  _initUI() {
     document.getElementById('connectButton').addEventListener('click', async () => {
       const remoteId = document.getElementById('remotePeerId').value.trim();
       if (!remoteId) {
-        this.showNotification('Enter a valid Peer ID or Room Name.', 'warning');
+        this._log('Please enter a peer ID or room name.', 'error');
         return;
       }
+
       if (remoteId.startsWith('ROOM_')) {
         this.signaling.joinRoom(remoteId);
+        this._log(`Joined room ${remoteId}`, 'info');
       } else {
         await this.peerService.connectToPeer(remoteId);
       }
     });
+
     const fileInput = document.getElementById('fileInput');
     fileInput.addEventListener('change', (e) => {
-      this.handleFiles(Array.from(e.target.files));
+      this._sendFiles(Array.from(e.target.files));
     });
+
     const dropZone = document.getElementById('fileDropZone');
     dropZone.addEventListener('dragover', (e) => {
       e.preventDefault();
@@ -46,26 +48,45 @@ class FileShareApp {
     dropZone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropZone.classList.remove('dragover');
-      this.handleFiles(Array.from(e.dataTransfer.files));
+      this._sendFiles(Array.from(e.dataTransfer.files));
     });
   }
 
-  handleFiles(files) {
+  _sendFiles(files) {
+    const channel = this.peerService.getActiveDataChannel();
+    if (!channel) {
+      this._log('No open data channel. Connect to a peer first.', 'error');
+      return;
+    }
+
     files.forEach((file) => {
-      if (this.peerService.getActiveChannel()) {
-        this.showNotification(`Sending ${file.name}...`, 'info');
-        this.fileService.sendFile(this.peerService.getActiveChannel(), file);
-      } else {
-        this.showNotification(`⚠️ No open data channel. Will send when available.`, 'warning');
-      }
+      this._log(`Sending file "${file.name}" (${this._formatBytes(file.size)})...`, 'info');
+      this.fileService.sendFile(channel, file);
     });
+  }
+
+  _log(message, type = 'info') {
+    const logs = document.getElementById('logs');
+    const el = document.createElement('div');
+    el.textContent = message;
+    el.className = `log-${type}`;
+    logs.appendChild(el);
+    logs.scrollTop = logs.scrollHeight;
   }
 
   showNotification(message, type) {
-    const elem = document.createElement('div');
-    elem.textContent = message;
-    elem.className = `log ${type}`;
-    document.getElementById('logs').appendChild(elem);
+    this._log(message, type);
+  }
+
+  _formatBytes(bytes) {
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    while (bytes >= 1024 && i < units.length - 1) {
+      bytes /= 1024;
+      i++;
+    }
+    return `${bytes.toFixed(2)} ${units[i]}`;
   }
 }
-new FileShareApp();
+
+window.app = new FileShareApp();
