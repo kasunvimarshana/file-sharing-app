@@ -1,6 +1,6 @@
 import hashlib
 
-CHUNK_SIZE = 64 * 1024  # 64 KB
+CHUNK_SIZE = 64 * 1024  # 64KB chunks
 
 def split_file(filepath):
     chunks = []
@@ -9,10 +9,10 @@ def split_file(filepath):
             chunks.append(data)
     return chunks
 
-def hash_chunk(chunk):
-    return hashlib.sha256(chunk).hexdigest()
-
 def merge_chunks(chunks, output_path):
     with open(output_path, 'wb') as f:
         for chunk in chunks:
             f.write(chunk)
+
+def hash_chunk(chunk):
+    return hashlib.sha256(chunk).hexdigest()

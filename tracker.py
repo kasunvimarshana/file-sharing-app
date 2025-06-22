@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
-files_to_peers = {}  # { file_id: set([peer_address]) }
+files_to_peers = {}
 
 @app.route('/register', methods=['POST'])
 def register():
