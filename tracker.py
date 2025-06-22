@@ -6,8 +6,7 @@ files_to_peers = {}
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
-    file_id = data['file_id']
-    peer_address = data['peer_address']
+    file_id, peer_address = data['file_id'], data['peer_address']
     files_to_peers.setdefault(file_id, set()).add(peer_address)
     return jsonify(status='ok')
 
