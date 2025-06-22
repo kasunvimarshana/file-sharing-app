@@ -1,6 +1,6 @@
 import hashlib
 
-CHUNK_SIZE = 64 * 1024  # 64KB chunks
+CHUNK_SIZE = 64 * 1024
 
 def split_file(filepath):
     chunks = []

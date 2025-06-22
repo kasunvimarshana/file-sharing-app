@@ -5,28 +5,26 @@ from file_manager import split_file
 chunks = []
 file_id = None
 
-# Serve a chunk
+# Serve piece
 async def get_piece(request):
     idx = int(request.query['idx'])
     return web.Response(body=chunks[idx])
 
-# Register seeder with tracker
-async def register_with_tracker(tracker_url, file_id, peer_address):
+# Register with tracker
+async def register(tracker_url, file_id, peer_address):
     async with ClientSession() as session:
         resp = await session.post(
             f"{tracker_url}/register",
             json={'file_id': file_id, 'peer_address': peer_address}
         )
-        if resp.status == 200:
-            print(f"[✓] Seeder registered with tracker as {peer_address}")
+        print(f"[✓] Seeder registered with tracker, status={resp.status}")
 
-# Main seeder
+# Seeder main
 async def main(tracker_url, peer_address, file_path, file_id_input):
     global chunks, file_id
     chunks = split_file(file_path)
     file_id = file_id_input
-
-    await register_with_tracker(tracker_url, file_id, peer_address)
+    await register(tracker_url, file_id, peer_address)
 
     app = web.Application()
     app.router.add_get('/get_piece', get_piece)
@@ -36,7 +34,7 @@ async def main(tracker_url, peer_address, file_path, file_id_input):
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
 
-    print(f"[✓] Seeder running on {peer_address} for file_id={file_id}")
+    print(f"[✓] Seeder listening on {peer_address} for file_id={file_id}")
     while True:
         await asyncio.sleep(60)
 

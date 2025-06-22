@@ -8,7 +8,7 @@ async def get_peers(tracker_url, file_id):
         resp = await session.get(f"{tracker_url}/peers/{file_id}")
         return await resp.json()
 
-# Get number of chunks
+# Fetch num of chunks
 async def get_num_chunks(peer_address, file_id):
     async with ClientSession() as session:
         idx = 0
@@ -19,7 +19,7 @@ async def get_num_chunks(peer_address, file_id):
             else:
                 return idx
 
-# Fetch one chunk
+# Fetch one piece
 async def download_piece(peer_address, file_id, idx):
     async with ClientSession() as session:
         resp = await session.get(f"{peer_address}/get_piece?file_id={file_id}&idx={idx}")
@@ -29,15 +29,13 @@ async def download_piece(peer_address, file_id, idx):
 async def main(tracker_url, file_id, output_path):
     peers = await get_peers(tracker_url, file_id)
     if not peers:
-        raise RuntimeError(f"No peers found for file_id={file_id}")
-
+        raise RuntimeError(f"No peers for {file_id}")
     peer = peers[0]
-    num_chunks = await get_num_chunks(peer, file_id)
-    print(f"[✓] Found {num_chunks} chunks on {peer}")
 
+    num_chunks = await get_num_chunks(peer, file_id)
     chunks = await asyncio.gather(*[download_piece(peer, file_id, i) for i in range(num_chunks)])
     merge_chunks(chunks, output_path)
-    print(f"[✓] Download completed -> {output_path}")
+    print(f"[✓] Downloaded file_id={file_id} to {output_path}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
