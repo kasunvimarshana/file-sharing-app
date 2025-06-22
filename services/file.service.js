@@ -1,36 +1,29 @@
 export class FileService {
   constructor(app) {
     this.app = app;
-
-    this.chunkSize = 16000;
-    this.currentFiles = new Map();
+    this.chunkSize = 16 * 1024;
+    this.currentFiles = {};
   }
 
   sendFile(dataChannel, file) {
-    if (!dataChannel || dataChannel.readyState !== 'open') {
-      this.app.showNotification('Data channel is not open', 'error');
-      return;
-    }
-
-    const id = Math.random().toString(36).substring(2, 10);
-    const metadata = {
-      type: 'file-metadata',
-      id,
-      name: file.name,
-      size: file.size
-    };
-    dataChannel.send(JSON.stringify(metadata));
-
     const reader = new FileReader();
     reader.onload = (e) => {
-      const buffer = e.target.result;
+      const arrayBuffer = e.target.result;
+      dataChannel.send(JSON.stringify({ meta: { name: file.name, size: file.size, type: file.type } }));
 
-      for (let offset = 0; offset < buffer.byteLength; offset += this.chunkSize) {
-        const chunk = buffer.slice(offset, offset + this.chunkSize);
-        dataChannel.send(chunk);
-      }
+      let offset = 0;
 
-      this.app.showNotification(`Sent ${file.name}!`, 'success');
+      const sendChunk = () => {
+        if (offset < arrayBuffer.byteLength) {
+          const chunk = arrayBuffer.slice(offset, offset + this.chunkSize);
+          dataChannel.send(chunk);
+          offset += this.chunkSize;
+          setTimeout(sendChunk, 1);
+        } else {
+          this.app.showNotification(`✅ File "${file.name}" sent successfully.`, 'success');
+        }
+      };
+      sendChunk();
     };
     reader.readAsArrayBuffer(file);
   }
@@ -38,47 +31,33 @@ export class FileService {
   handleIncomingData(data) {
     if (typeof data === 'string') {
       try {
-        const parsed = JSON.parse(data);
-        if (parsed.type === 'file-metadata') {
-          this.currentFiles.set(parsed.id, {
-            id: parsed.id,
-            name: parsed.name,
-            size: parsed.size,
-            data: []
-          });
-          this.app.showNotification(`Receiving ${parsed.name} (${parsed.size} bytes)...`, 'info');
+        const msg = JSON.parse(data);
+        if (msg.meta) {
+          const { name, size, type } = msg.meta;
+          this.currentFiles[name] = { name, size, type, data: [] };
+          this.app.showNotification(`📥 Receiving "${name}" (${size} bytes)...`, 'info');
         }
       } catch {
-        this.app.showNotification('Invalid metadata received', 'error');
+        // Not JSON
       }
     } else {
-      for (const [id, file] of this.currentFiles.entries()) {
-        if (file.data.length < file.size) {
-          file.data.push(data);
-          const receivedBytes = file.data.reduce((sum, chunk) => sum + chunk.byteLength, 0);
-          if (receivedBytes >= file.size) {
-            this._saveReceivedFile(file);
-            this.currentFiles.delete(id);
-            break;
-          }
+      for (const name in this.currentFiles) {
+        const entry = this.currentFiles[name];
+        entry.data.push(data);
+        const receivedBytes = entry.data.reduce((acc, chunk) => acc + chunk.byteLength, 0);
+
+        if (receivedBytes >= entry.size) {
+          const blob = new Blob(entry.data, { type: entry.type });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = entry.name;
+          link.textContent = `💾 Download ${entry.name}`;
+          this.app.showNotification(`✅ File "${entry.name}" received. Click to download.`, 'success');
+          this.app.showNotification('');
+          document.getElementById('logs').appendChild(link);
+          delete this.currentFiles[name];
         }
       }
     }
-  }
-
-  _saveReceivedFile(file) {
-    const blob = new Blob(file.data);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = file.name;
-    a.textContent = `💾 Download ${file.name}`;
-    a.style.display = 'block';
-    a.addEventListener('click', () => {
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    });
-    this.app.showNotification(`File ${file.name} received. Click link to download.`, 'success');
-    this.app.logEl.appendChild(a);
-    this.app.logEl.scrollTop = this.app.logEl.scrollHeight;
   }
 }

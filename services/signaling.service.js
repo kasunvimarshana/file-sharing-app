@@ -1,22 +1,33 @@
 export class SignalingService {
-  constructor(localId, onMessage) {
-    this.localId = localId;
-    this.onMessage = onMessage;
+  constructor(peerId) {
+    this.peerId = peerId;
+    this.socket = null;
+    this.callbacks = {};
+  }
 
-    // this.socket = new WebSocket(`ws://${window.location.host}`);
-    this.socket = new WebSocket(`ws://${window.location.hostname}:8080`);
+  connect() {
+    // this.socket = new WebSocket(`ws://${location.host}`);
+    this.socket = new WebSocket(`ws://${location.hostname}:8080`);
     this.socket.addEventListener('open', () => {
-      this.socket.send(JSON.stringify({ register: this.localId }));
+      this.socket.send(JSON.stringify({ register: this.peerId }));
     });
     this.socket.addEventListener('message', (event) => {
       const data = JSON.parse(event.data);
-      this.onMessage(data);
+      if (this.callbacks.signal) {
+        this.callbacks.signal(data);
+      }
     });
   }
 
+  on(event, callback) {
+    this.callbacks[event] = callback;
+  }
+
   send(data) {
-    if (this.socket.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify(data));
-    }
+    this.socket.send(JSON.stringify(data));
+  }
+
+  joinRoom(room) {
+    this.send({ room, from: this.peerId });
   }
 }

@@ -2,24 +2,27 @@
 <html>
 <head>
 <meta charset="UTF-8" />
-<title>Pure P2P File Share Demo</title>
+<title>Pure P2P File Share</title>
 <style>
-body { font-family: Arial, sans-serif; max-width: 600px; margin: 2rem auto; padding: 1rem; }
-.log { border: 1px solid #ccc; padding: 1rem; height: 200px; overflow-y: auto; margin: 1rem 0; background: #f9f9f9; font-size: 0.9rem; }
-input, button { padding: 0.5rem; font-size: 1rem; margin: 0.25rem 0; width: 100%; box-sizing: border-box; }
-a { display: block; margin: 0.25rem 0; color: blue; text-decoration: underline; cursor: pointer; }
+body { font: 14px Arial; padding: 20px; }
+#logs { max-height: 150px; overflow-y: auto; background: #f9f9f9; padding: 5px; border: 1px solid #ccc; }
 </style>
 </head>
 <body>
-<h2>Pure P2P File Share Demo</h2>
-<div><strong>My ID:</strong> <span id="myId"></span></div>
-<input id="remoteIdInput" placeholder="Enter Remote Peer ID">
-<button id="connectBtn">Connect</button>
-<input id="roomIdInput" placeholder="Enter Room ID">
-<button id="joinRoomBtn">Join Room</button>
-<input id="fileInput" type="file">
-<button id="sendFileBtn">Send File</button>
-<div class="log" id="log"></div>
+<h1>🌐 Pure P2P File Share</h1>
+<div>
+  <div>My Peer ID: <span id="myPeerId"></span></div>
+  <input id="remotePeerId" placeholder="Enter peer ID or room name" />
+  <button id="connectButton">Connect</button>
+</div>
+<div>
+  <input type="file" id="fileInput" multiple />
+  <div id="fileDropZone" style="border:2px dashed #ccc; padding:10px; margin:10px 0;">
+    Drop files here
+  </div>
+</div>
+<div id="logs"></div>
+
 <script type="module" src="./app.js"></script>
 </body>
 </html>
