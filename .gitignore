@@ -1,2 +1,4 @@
-# Dependency directories
-node_modules/
+.venv
+
+cert.pem
+key.pem
