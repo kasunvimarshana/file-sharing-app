@@ -3,7 +3,8 @@ export class SignalingService {
         this.localId = localId;
         this.onMessage = onMessage;
 
-        this.socket = new WebSocket('ws://localhost:8081');
+        // this.socket = new WebSocket(`ws://${window.location.host}`);
+        this.socket = new WebSocket(`ws://${window.location.hostname}:8080`);
         this.socket.addEventListener('open', () => {
             this.socket.send(JSON.stringify({ register: this.localId }));
         });

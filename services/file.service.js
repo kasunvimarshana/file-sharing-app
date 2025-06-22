@@ -30,7 +30,7 @@ export class FileService {
         if (this.incomingChunks.length > 10) {
             this.saveReceivedFile();
         } else {
-            this.app.showNotification(`Received chunk ${data.byteLength} bytes`, 'info');
+            this.app.showNotification(`Received chunk (${data.byteLength} bytes)`, 'info');
         }
     }
 
