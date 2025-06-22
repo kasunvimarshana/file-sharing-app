@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>P2P Torrent Demo</title>
+  <style>
+    body { font-family: Arial, padding: 1rem; background: #f8f8f8; }
+    input, button { padding: 0.5rem; margin: 0.2rem; }
+    pre { background: #333; color: #0f0; padding: 1rem; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>P2P Torrent Demo</h1>
+  <label>My Peer ID: <span id="myPeerId"></span></label><br>
+  <input id="fileInput" type="file" />
+  <input id="targetPeerId" placeholder="Target peer ID" />
+  <button id="connectPeer">Connect</button>
+  <button id="sendFile">Send file</button>
+  <pre id="log"></pre>
+  <script src="./client.js"></script>
+</body>
+</html>
