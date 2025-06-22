@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Remote Desktop Pro</title>
+    <title>RemoteDesk Pro - Remote Desktop Solution</title>
     <style>
         * {
             margin: 0;
@@ -12,126 +12,137 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-            width: 100%;
-            max-width: 1200px;
-            backdrop-filter: blur(10px);
+            flex-direction: column;
+            color: #333;
         }
 
         .header {
-            text-align: center;
-            margin-bottom: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .header h1 {
-            color: #2d3748;
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .header p {
-            color: #718096;
-            font-size: 1.1rem;
+        .logo::before {
+            content: "🖥️";
+            font-size: 1.8rem;
         }
 
-        .mode-selector {
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4757;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #2ed573;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-container {
+            flex: 1;
             display: flex;
             gap: 1rem;
-            margin-bottom: 2rem;
-            justify-content: center;
+            padding: 1rem;
         }
 
-        .mode-btn {
-            padding: 1rem 2rem;
-            border: none;
+        .sidebar {
+            width: 300px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .connection-section {
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f4f8 100%);
             border-radius: 12px;
-            font-size: 1rem;
+            padding: 1.5rem;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
             font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .mode-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-        }
-
-        .mode-btn.active {
-            background: linear-gradient(45deg, #4299e1, #667eea);
-            transform: translateY(-2px);
-        }
-
-        .section {
-            display: none;
-            animation: fadeIn 0.5s ease-in;
-        }
-
-        .section.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .connection-panel {
-            background: #f8fafc;
-            border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            border: 2px solid #e2e8f0;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .connection-id {
+            background: white;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 600;
             text-align: center;
-            margin-bottom: 2rem;
+            color: #667eea;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+            user-select: all;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
 
-        .id-display {
-            font-size: 3rem;
-            font-weight: 700;
-            color: #2d3748;
-            letter-spacing: 0.5rem;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 1rem;
+        .connection-id:hover {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .input-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
 
         .input-group label {
             display: block;
             margin-bottom: 0.5rem;
-            color: #2d3748;
-            font-weight: 600;
+            font-weight: 500;
+            color: #2c3e50;
         }
 
         .input-group input {
             width: 100%;
-            padding: 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
+            padding: 0.75rem;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
             font-size: 1rem;
             transition: border-color 0.3s ease;
         }
@@ -143,21 +154,30 @@
         }
 
         .btn {
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 1rem 2rem;
-            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
         }
 
         .btn:disabled {
@@ -166,205 +186,162 @@
             transform: none;
         }
 
-        .remote-screen {
-            position: relative;
-            background: #1a202c;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
         }
 
-        .screen-header {
-            background: #2d3748;
+        .remote-display {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
             padding: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .display-header {
             display: flex;
             justify-content: between;
             align-items: center;
-            color: white;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e1e8ed;
         }
 
-        .screen-controls {
+        .display-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            flex: 1;
+        }
+
+        .display-controls {
             display: flex;
             gap: 0.5rem;
         }
 
         .control-btn {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
+            background: none;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            padding: 0.5rem;
             cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
         }
 
-        .control-btn.close { background: #fc8181; }
-        .control-btn.minimize { background: #f6e05e; }
-        .control-btn.maximize { background: #68d391; }
+        .control-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
 
-        .screen-content {
+        .control-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .screen-container {
+            flex: 1;
+            background: #000;
+            border-radius: 8px;
             position: relative;
+            overflow: hidden;
             min-height: 400px;
-            background: #1a202c;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #a0aec0;
         }
 
         .screen-canvas {
-            width: 100%;
-            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 4px;
             cursor: crosshair;
         }
 
-        .status-bar {
-            background: #2d3748;
-            padding: 0.5rem 1rem;
-            color: white;
-            font-size: 0.9rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #68d391;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .toolbar {
-            display: flex;
-            gap: 1rem;
-            margin: 1rem 0;
-            flex-wrap: wrap;
-        }
-
-        .tool-btn {
-            padding: 0.5rem 1rem;
-            background: #4a5568;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: background 0.3s ease;
-        }
-
-        .tool-btn:hover {
-            background: #2d3748;
-        }
-
-        .tool-btn.active {
-            background: #667eea;
-        }
-
-        .file-transfer {
-            background: #f8fafc;
-            border-radius: 16px;
-            padding: 2rem;
-            margin-top: 2rem;
-            border: 2px solid #e2e8f0;
-        }
-
-        .file-drop-zone {
-            border: 2px dashed #cbd5e0;
-            border-radius: 12px;
-            padding: 3rem;
+        .connection-status {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             text-align: center;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .connection-status::before {
+            content: "📡";
+            font-size: 3rem;
+            display: block;
             margin-bottom: 1rem;
-            transition: all 0.3s ease;
-            cursor: pointer;
+            opacity: 0.5;
         }
 
-        .file-drop-zone.drag-over {
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
-        }
-
-        .file-list {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-
-        .file-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .file-item:last-child {
-            border-bottom: none;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: #e2e8f0;
-            border-radius: 3px;
-            overflow: hidden;
-            margin: 1rem 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            transition: width 0.3s ease;
+        .performance-stats {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 0.85rem;
+            font-family: monospace;
         }
 
         .chat-panel {
-            background: #f8fafc;
-            border-radius: 16px;
+            width: 250px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
             padding: 1rem;
-            margin-top: 2rem;
-            border: 2px solid #e2e8f0;
-            height: 300px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
             display: flex;
             flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .chat-panel.hidden {
+            width: 0;
+            padding: 0;
+            opacity: 0;
+            overflow: hidden;
         }
 
         .chat-messages {
             flex: 1;
+            max-height: 300px;
             overflow-y: auto;
-            padding: 1rem;
-            background: white;
+            border: 1px solid #e1e8ed;
             border-radius: 8px;
+            padding: 0.5rem;
             margin-bottom: 1rem;
-            border: 1px solid #e2e8f0;
+            background: white;
         }
 
         .chat-message {
             margin-bottom: 0.5rem;
             padding: 0.5rem;
-            border-radius: 8px;
-            max-width: 70%;
+            border-radius: 6px;
+            font-size: 0.9rem;
         }
 
         .chat-message.sent {
             background: #667eea;
             color: white;
-            margin-left: auto;
+            margin-left: 20%;
         }
 
         .chat-message.received {
-            background: #e2e8f0;
-            color: #2d3748;
+            background: #f8f9fa;
+            margin-right: 20%;
         }
 
         .chat-input {
@@ -374,261 +351,296 @@
 
         .chat-input input {
             flex: 1;
-            padding: 0.75rem;
-            border: 1px solid #e2e8f0;
+            padding: 0.5rem;
+            border: 1px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .chat-input button {
+            padding: 0.5rem 1rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
             border-radius: 8px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
         }
 
-        .hidden {
-            display: none !important;
+        .notification.show {
+            transform: translateX(0);
         }
 
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
+        .notification.success {
+            border-left: 4px solid #2ed573;
         }
 
-        @media (max-width: 768px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .mode-selector {
+        .notification.error {
+            border-left: 4px solid #ff4757;
+        }
+
+        .notification.info {
+            border-left: 4px solid #3742fa;
+        }
+
+        @media (max-width: 1200px) {
+            .main-container {
                 flex-direction: column;
             }
             
-            .toolbar {
-                justify-content: center;
+            .sidebar {
+                width: 100%;
+                order: 1;
             }
+            
+            .remote-display {
+                order: 2;
+            }
+            
+            .chat-panel {
+                width: 100%;
+                order: 3;
+            }
+        }
+
+        .file-transfer {
+            border-top: 2px solid #e1e8ed;
+            padding-top: 1rem;
+            margin-top: 1rem;
+        }
+
+        .file-drop-zone {
+            border: 2px dashed #e1e8ed;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        .file-drop-zone:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .file-drop-zone.drag-over {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .file-list {
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #e1e8ed;
+            border-radius: 6px;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.9rem;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e1e8ed;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Remote Desktop Pro</h1>
-            <p>Secure, fast, and reliable remote desktop solution</p>
+    <div class="header">
+        <div class="logo">RemoteDesk Pro</div>
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Disconnected</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="connection-section">
+                <div class="section-title">🆔 Your Connection ID</div>
+                <div class="connection-id" id="connectionId" title="Click to copy">
+                    Loading...
+                </div>
+                <div class="input-group">
+                    <label for="remoteId">Remote ID to Connect</label>
+                    <input type="text" id="remoteId" placeholder="Enter remote ID">
+                </div>
+                <div class="controls">
+                    <button class="btn" id="connectBtn">Connect</button>
+                    <button class="btn secondary" id="shareBtn">Share Screen</button>
+                </div>
+            </div>
+
+            <div class="connection-section">
+                <div class="section-title">⚙️ Settings</div>
+                <div class="input-group">
+                    <label>
+                        <input type="checkbox" id="enableAudio"> Enable Audio
+                    </label>
+                </div>
+                <div class="input-group">
+                    <label>
+                        <input type="checkbox" id="enableControl" checked> Enable Remote Control
+                    </label>
+                </div>
+                <div class="input-group">
+                    <label>
+                        <input type="range" id="qualitySlider" min="1" max="10" value="8"> 
+                        Quality: <span id="qualityValue">8</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="file-transfer">
+                <div class="section-title">📁 File Transfer</div>
+                <div class="file-drop-zone" id="fileDropZone">
+                    <div>📎 Drop files here or click to select</div>
+                    <input type="file" id="fileInput" multiple style="display: none;">
+                </div>
+                <div class="file-list" id="fileList"></div>
+                <button class="btn" id="sendFilesBtn" disabled>Send Files</button>
+            </div>
         </div>
 
-        <div class="mode-selector">
-            <button class="mode-btn active" data-mode="host">Host Session</button>
-            <button class="mode-btn" data-mode="client">Connect to Session</button>
-        </div>
-
-        <!-- Host Section -->
-        <div class="section active" id="host-section">
-            <div class="connection-panel">
-                <div class="connection-id">
-                    <div class="id-display" id="session-id">Loading...</div>
-                    <p>Share this ID with others to allow remote access</p>
-                </div>
-                
-                <div class="input-group">
-                    <label for="session-password">Session Password (Optional)</label>
-                    <input type="password" id="session-password" placeholder="Enter password for secure access">
-                </div>
-                
-                <div style="text-align: center;">
-                    <button class="btn" id="start-host-btn">Start Hosting</button>
-                    <button class="btn" id="stop-host-btn" style="display: none;">Stop Hosting</button>
+        <div class="remote-display">
+            <div class="display-header">
+                <div class="display-title">Remote Desktop</div>
+                <div class="display-controls">
+                    <button class="control-btn" id="fullscreenBtn" title="Fullscreen">⛶</button>
+                    <button class="control-btn" id="screenshotBtn" title="Screenshot">📷</button>
+                    <button class="control-btn" id="chatToggle" title="Toggle Chat">💬</button>
+                    <button class="control-btn" id="recordBtn" title="Record">🔴</button>
                 </div>
             </div>
-
-            <div class="remote-screen" id="host-screen" style="display: none;">
-                <div class="screen-header">
-                    <div class="screen-controls">
-                        <div class="control-btn close"></div>
-                        <div class="control-btn minimize"></div>
-                        <div class="control-btn maximize"></div>
-                    </div>
-                    <div>Screen Sharing Active</div>
-                    <div class="status-indicator">
-                        <div class="status-dot"></div>
-                        <span>Connected</span>
-                    </div>
+            <div class="screen-container" id="screenContainer">
+                <canvas class="screen-canvas" id="remoteScreen"></canvas>
+                <div class="connection-status" id="connectionStatus">
+                    Waiting for connection...
                 </div>
-                
-                <div class="screen-content">
-                    <video id="host-video" class="screen-canvas" autoplay muted></video>
-                </div>
-                
-                <div class="status-bar">
-                    <span>Clients Connected: <span id="client-count">0</span></span>
-                    <span>Quality: <span id="quality-status">HD</span></span>
-                    <span>Latency: <span id="latency-status">--ms</span></span>
+                <div class="performance-stats" id="performanceStats">
+                    FPS: -- | Latency: -- ms | Bandwidth: -- KB/s
                 </div>
             </div>
         </div>
 
-        <!-- Client Section -->
-        <div class="section" id="client-section">
-            <div class="connection-panel">
-                <div class="input-group">
-                    <label for="remote-id">Remote Session ID</label>
-                    <input type="text" id="remote-id" placeholder="Enter session ID to connect">
-                </div>
-                
-                <div class="input-group">
-                    <label for="remote-password">Password (if required)</label>
-                    <input type="password" id="remote-password" placeholder="Enter session password">
-                </div>
-                
-                <div style="text-align: center;">
-                    <button class="btn" id="connect-btn">Connect</button>
-                    <button class="btn" id="disconnect-btn" style="display: none;">Disconnect</button>
-                </div>
-            </div>
-
-            <div class="remote-screen" id="client-screen" style="display: none;">
-                <div class="screen-header">
-                    <div class="screen-controls">
-                        <div class="control-btn close" id="close-connection"></div>
-                        <div class="control-btn minimize" id="minimize-screen"></div>
-                        <div class="control-btn maximize" id="maximize-screen"></div>
-                    </div>
-                    <div>Remote Desktop Connection</div>
-                    <div class="status-indicator">
-                        <div class="status-dot"></div>
-                        <span>Connected</span>
-                    </div>
-                </div>
-                
-                <div class="toolbar">
-                    <button class="tool-btn active" id="mouse-tool">Mouse</button>
-                    <button class="tool-btn" id="keyboard-tool">Keyboard</button>
-                    <button class="tool-btn" id="draw-tool">Draw</button>
-                    <button class="tool-btn" id="screenshot-tool">Screenshot</button>
-                    <button class="tool-btn" id="fullscreen-tool">Fullscreen</button>
-                </div>
-                
-                <div class="screen-content">
-                    <canvas id="remote-canvas" class="screen-canvas"></canvas>
-                </div>
-                
-                <div class="status-bar">
-                    <span>Connection: <span id="connection-status">Active</span></span>
-                    <span>FPS: <span id="fps-counter">30</span></span>
-                    <span>Bandwidth: <span id="bandwidth-usage">1.2 MB/s</span></span>
-                </div>
-            </div>
-
-            <!-- File Transfer -->
-            <div class="file-transfer" id="file-transfer-panel" style="display: none;">
-                <h3 style="margin-bottom: 1rem; color: #2d3748;">File Transfer</h3>
-                
-                <div class="file-drop-zone" id="file-drop-zone">
-                    <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>
-                    <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem;">Drop files here</div>
-                    <div style="color: #718096;">or click to browse</div>
-                    <input type="file" id="file-input" multiple style="display: none;">
-                </div>
-                
-                <div class="progress-bar" id="transfer-progress" style="display: none;">
-                    <div class="progress-fill" id="progress-fill"></div>
-                </div>
-                
-                <div class="file-list" id="file-list"></div>
-            </div>
-
-            <!-- Chat Panel -->
-            <div class="chat-panel" id="chat-panel" style="display: none;">
-                <h3 style="margin-bottom: 1rem; color: #2d3748;">Chat</h3>
-                <div class="chat-messages" id="chat-messages"></div>
-                <div class="chat-input">
-                    <input type="text" id="chat-input" placeholder="Type a message...">
-                    <button class="btn" id="send-chat">Send</button>
-                </div>
+        <div class="chat-panel" id="chatPanel">
+            <div class="section-title">💬 Chat</div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input">
+                <input type="text" id="chatInput" placeholder="Type a message...">
+                <button id="sendChatBtn">Send</button>
             </div>
         </div>
     </div>
 
+    <div class="notification" id="notification"></div>
+
     <script>
         class RemoteDesktopApp {
             constructor() {
-                this.mode = 'host';
-                this.sessionId = null;
-                this.isHosting = false;
+                this.connectionId = this.generateConnectionId();
                 this.isConnected = false;
+                this.isSharing = false;
                 this.peerConnection = null;
                 this.dataChannel = null;
-                this.stream = null;
-                this.canvas = null;
-                this.ctx = null;
-                this.mousePosition = { x: 0, y: 0 };
-                this.isDrawing = false;
-                this.currentTool = 'mouse';
-                this.connections = new Map();
-                this.fileTransfers = new Map();
-                this.chatMessages = [];
+                this.mediaStream = null;
+                this.remoteStream = null;
+                this.canvas = document.getElementById('remoteScreen');
+                this.ctx = this.canvas.getContext('2d');
+                this.video = document.createElement('video');
+                this.recordedChunks = [];
+                this.mediaRecorder = null;
+                this.files = [];
+                this.chatVisible = true;
                 
-                this.init();
-            }
-
-            init() {
+                // Performance tracking
+                this.stats = {
+                    fps: 0,
+                    latency: 0,
+                    bandwidth: 0,
+                    frameCount: 0,
+                    lastTime: Date.now()
+                };
+                
+                this.initializeUI();
                 this.setupEventListeners();
-                this.generateSessionId();
-                this.setupCanvas();
                 this.startPerformanceMonitoring();
             }
 
+            generateConnectionId() {
+                return Math.random().toString(36).substr(2, 9).toUpperCase();
+            }
+
+            initializeUI() {
+                document.getElementById('connectionId').textContent = this.connectionId;
+                this.updateStatus('Disconnected', false);
+                this.showNotification('Application initialized', 'success');
+            }
+
             setupEventListeners() {
-                // Mode switching
-                document.querySelectorAll('.mode-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        this.switchMode(e.target.dataset.mode);
-                    });
+                // Connection controls
+                document.getElementById('connectBtn').addEventListener('click', () => this.connect());
+                document.getElementById('shareBtn').addEventListener('click', () => this.shareScreen());
+                document.getElementById('connectionId').addEventListener('click', () => this.copyToClipboard());
+                
+                // Display controls
+                document.getElementById('fullscreenBtn').addEventListener('click', () => this.toggleFullscreen());
+                document.getElementById('screenshotBtn').addEventListener('click', () => this.takeScreenshot());
+                document.getElementById('chatToggle').addEventListener('click', () => this.toggleChat());
+                document.getElementById('recordBtn').addEventListener('click', () => this.toggleRecording());
+                
+                // Settings
+                document.getElementById('qualitySlider').addEventListener('input', (e) => {
+                    document.getElementById('qualityValue').textContent = e.target.value;
+                    this.updateQuality(e.target.value);
                 });
-
-                // Host controls
-                document.getElementById('start-host-btn').addEventListener('click', () => {
-                    this.startHosting();
+                
+                // Chat
+                document.getElementById('sendChatBtn').addEventListener('click', () => this.sendChatMessage());
+                document.getElementById('chatInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendChatMessage();
                 });
-
-                document.getElementById('stop-host-btn').addEventListener('click', () => {
-                    this.stopHosting();
-                });
-
-                // Client controls
-                document.getElementById('connect-btn').addEventListener('click', () => {
-                    this.connectToSession();
-                });
-
-                document.getElementById('disconnect-btn').addEventListener('click', () => {
-                    this.disconnect();
-                });
-
-                // Screen controls
-                document.getElementById('close-connection').addEventListener('click', () => {
-                    this.disconnect();
-                });
-
-                document.getElementById('minimize-screen').addEventListener('click', () => {
-                    this.minimizeScreen();
-                });
-
-                document.getElementById('maximize-screen').addEventListener('click', () => {
-                    this.maximizeScreen();
-                });
-
-                // Tool controls
-                document.querySelectorAll('.tool-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        this.switchTool(e.target.id.replace('-tool', ''));
-                    });
-                });
-
-                // Canvas interactions
-                const canvas = document.getElementById('remote-canvas');
-                canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
-                canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-                canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
-                canvas.addEventListener('click', (e) => this.handleClick(e));
-
+                
                 // File transfer
-                const fileDropZone = document.getElementById('file-drop-zone');
-                const fileInput = document.getElementById('file-input');
-
+                const fileDropZone = document.getElementById('fileDropZone');
+                const fileInput = document.getElementById('fileInput');
+                
                 fileDropZone.addEventListener('click', () => fileInput.click());
                 fileDropZone.addEventListener('dragover', (e) => {
                     e.preventDefault();
@@ -640,603 +652,439 @@
                 fileDropZone.addEventListener('drop', (e) => {
                     e.preventDefault();
                     fileDropZone.classList.remove('drag-over');
-                    this.handleFilesDrop(e.dataTransfer.files);
+                    this.handleFileSelection(e.dataTransfer.files);
                 });
-
-                fileInput.addEventListener('change', (e) => {
-                    this.handleFilesDrop(e.target.files);
-                });
-
-                // Chat
-                document.getElementById('send-chat').addEventListener('click', () => {
-                    this.sendChatMessage();
-                });
-
-                document.getElementById('chat-input').addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        this.sendChatMessage();
-                    }
-                });
-
-                // Keyboard events
-                document.addEventListener('keydown', (e) => {
-                    if (this.isConnected && this.currentTool === 'keyboard') {
-                        this.handleKeyPress(e);
-                    }
-                });
-
-                // Screenshot
-                document.getElementById('screenshot-tool').addEventListener('click', () => {
-                    this.takeScreenshot();
-                });
-
-                // Fullscreen
-                document.getElementById('fullscreen-tool').addEventListener('click', () => {
-                    this.toggleFullscreen();
-                });
-            }
-
-            switchMode(mode) {
-                this.mode = mode;
                 
-                // Update active button
-                document.querySelectorAll('.mode-btn').forEach(btn => {
-                    btn.classList.remove('active');
+                fileInput.addEventListener('change', (e) => {
+                    this.handleFileSelection(e.target.files);
                 });
-                document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
-
-                // Show/hide sections
-                document.querySelectorAll('.section').forEach(section => {
-                    section.classList.remove('active');
-                });
-                document.getElementById(`${mode}-section`).classList.add('active');
+                
+                document.getElementById('sendFilesBtn').addEventListener('click', () => this.sendFiles());
+                
+                // Remote control
+                this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+                this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+                this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+                this.canvas.addEventListener('wheel', (e) => this.handleMouseWheel(e));
+                document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+                document.addEventListener('keyup', (e) => this.handleKeyUp(e));
             }
 
-            generateSessionId() {
-                this.sessionId = Math.random().toString(36).substring(2, 12).toUpperCase();
-                document.getElementById('session-id').textContent = this.sessionId;
-            }
-
-            async startHosting() {
-                try {
-                    // Request screen capture
-                    this.stream = await navigator.mediaDevices.getDisplayMedia({
-                        video: { 
-                            width: 1920, 
-                            height: 1080,
-                            frameRate: 30
-                        },
-                        audio: true
-                    });
-
-                    // Show host screen
-                    document.getElementById('host-screen').style.display = 'block';
-                    document.getElementById('start-host-btn').style.display = 'none';
-                    document.getElementById('stop-host-btn').style.display = 'inline-block';
-
-                    // Set video source
-                    const video = document.getElementById('host-video');
-                    video.srcObject = this.stream;
-
-                    this.isHosting = true;
-                    this.startWebRTCSignaling();
-                    
-                    // Update status
-                    this.updateStatus('Hosting session - waiting for connections');
-                    
-                } catch (error) {
-                    console.error('Error starting host:', error);
-                    alert('Failed to start screen sharing. Please ensure you grant permission.');
-                }
-            }
-
-            stopHosting() {
-                if (this.stream) {
-                    this.stream.getTracks().forEach(track => track.stop());
-                }
-
-                document.getElementById('host-screen').style.display = 'none';
-                document.getElementById('start-host-btn').style.display = 'inline-block';
-                document.getElementById('stop-host-btn').style.display = 'none';
-
-                this.isHosting = false;
-                this.closeAllConnections();
-            }
-
-            async connectToSession() {
-                const remoteId = document.getElementById('remote-id').value.trim();
-                const password = document.getElementById('remote-password').value;
-
+            async connect() {
+                const remoteId = document.getElementById('remoteId').value.trim();
                 if (!remoteId) {
-                    alert('Please enter a session ID');
+                    this.showNotification('Please enter a remote ID', 'error');
                     return;
                 }
 
                 try {
-                    // Simulate connection process
-                    document.getElementById('connect-btn').disabled = true;
-                    document.getElementById('connect-btn').textContent = 'Connecting...';
-
-                    // Create WebRTC connection
-                    await this.establishConnection(remoteId, password);
-
-                    // Show client screen
-                    document.getElementById('client-screen').style.display = 'block';
-                    document.getElementById('file-transfer-panel').style.display = 'block';
-                    document.getElementById('chat-panel').style.display = 'block';
-                    document.getElementById('connect-btn').style.display = 'none';
-                    document.getElementById('disconnect-btn').style.display = 'inline-block';
-
-                    this.isConnected = true;
-                    this.startRemoteRendering();
+                    this.updateStatus('Connecting...', false);
                     
-                } catch (error) {
-                    console.error('Connection failed:', error);
-                    alert('Failed to connect to session. Please check the session ID.');
-                } finally {
-                    document.getElementById('connect-btn').disabled = false;
-                    document.getElementById('connect-btn').textContent = 'Connect';
-                }
-            }
+                    // Create peer connection
+                    this.peerConnection = new RTCPeerConnection({
+                        iceServers: [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                            { urls: 'stun:stun1.l.google.com:19302' }
+                        ]
+                    });
 
-            async establishConnection(sessionId, password) {
-                // Create RTCPeerConnection
-                this.peerConnection = new RTCPeerConnection({
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
-                    ]
-                });
-
-                // Set up data channel for control commands
-                this.dataChannel = this.peerConnection.createDataChannel('control', {
-                    ordered: true
-                });
-
-                this.dataChannel.onopen = () => {
-                    console.log('Data channel opened');
-                };
-
-                this.dataChannel.onmessage = (event) => {
-                    this.handleRemoteMessage(JSON.parse(event.data));
-                };
-
-                // Handle incoming data channels
-                this.peerConnection.ondatachannel = (event) => {
-                    const channel = event.channel;
-                    channel.onmessage = (event) => {
-                        this.handleRemoteMessage(JSON.parse(event.data));
+                    // Setup data channel for control and chat
+                    this.dataChannel = this.peerConnection.createDataChannel('control', {
+                        ordered: true
+                    });
+                    
+                    this.dataChannel.onopen = () => {
+                        this.updateStatus('Connected', true);
+                        this.showNotification('Connected successfully!', 'success');
                     };
-                };
+                    
+                    this.dataChannel.onmessage = (event) => {
+                        this.handleDataChannelMessage(event.data);
+                    };
 
-                // Handle remote stream
-                this.peerConnection.ontrack = (event) => {
-                    this.handleRemoteStream(event.streams[0]);
-                };
+                    // Handle incoming data channel
+                    this.peerConnection.ondatachannel = (event) => {
+                        const channel = event.channel;
+                        channel.onmessage = (event) => {
+                            this.handleDataChannelMessage(event.data);
+                        };
+                    };
 
-                // Simulate successful connection
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                    // Handle remote stream
+                    this.peerConnection.ontrack = (event) => {
+                        this.remoteStream = event.streams[0];
+                        this.video.srcObject = this.remoteStream;
+                        this.video.play();
+                        this.startDisplayLoop();
+                        document.getElementById('connectionStatus').style.display = 'none';
+                    };
+
+                    // ICE candidate handling
+                    this.peerConnection.onicecandidate = (event) => {
+                        if (event.candidate) {
+                            // In a real implementation, send this to the remote peer
+                            console.log('ICE candidate:', event.candidate);
+                        }
+                    };
+
+                    // Create offer
+                    const offer = await this.peerConnection.createOffer();
+                    await this.peerConnection.setLocalDescription(offer);
+                    
+                    // In a real implementation, send offer to remote peer
+                    console.log('Created offer:', offer);
+                    
+                    // Simulate connection for demo
+                    setTimeout(() => {
+                        this.simulateConnection();
+                    }, 2000);
+
+                } catch (error) {
+                    this.showNotification('Connection failed: ' + error.message, 'error');
+                    this.updateStatus('Disconnected', false);
+                }
             }
 
-            disconnect() {
-                if (this.peerConnection) {
-                    this.peerConnection.close();
-                    this.peerConnection = null;
-                }
-
-                if (this.dataChannel) {
-                    this.dataChannel.close();
-                    this.dataChannel = null;
-                }
-
-                document.getElementById('client-screen').style.display = 'none';
-                document.getElementById('file-transfer-panel').style.display = 'none';
-                document.getElementById('chat-panel').style.display = 'none';
-                document.getElementById('connect-btn').style.display = 'inline-block';
-                document.getElementById('disconnect-btn').style.display = 'none';
-
-                this.isConnected = false;
+            simulateConnection() {
+                // Simulate receiving remote screen for demo purposes
+                this.createDemoScreen();
+                this.updateStatus('Connected', true);
+                this.showNotification('Demo connection established', 'success');
+                document.getElementById('connectionStatus').style.display = 'none';
             }
 
-            setupCanvas() {
-                this.canvas = document.getElementById('remote-canvas');
-                this.ctx = this.canvas.getContext('2d');
-                
-                // Set canvas size
+            createDemoScreen() {
+                // Create a demo desktop environment
                 this.canvas.width = 1280;
                 this.canvas.height = 720;
                 
-                // Draw placeholder
-                this.drawPlaceholder();
-            }
-
-            drawPlaceholder() {
-                this.ctx.fillStyle = '#1a202c';
+                this.ctx.fillStyle = '#2c3e50';
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
                 
-                this.ctx.fillStyle = '#4a5568';
-                this.ctx.font = '24px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText('Remote Desktop', this.canvas.width / 2, this.canvas.height / 2 - 50);
-                this.ctx.fillText('Connect to see remote screen', this.canvas.width / 2, this.canvas.height / 2);
-                
-                // Draw grid pattern
-                this.ctx.strokeStyle = '#2d3748';
-                this.ctx.lineWidth = 1;
-                
-                for (let i = 0; i < this.canvas.width; i += 50) {
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(i, 0);
-                    this.ctx.lineTo(i, this.canvas.height);
-                    this.ctx.stroke();
-                }
-                
-                for (let i = 0; i < this.canvas.height; i += 50) {
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(0, i);
-                    this.ctx.lineTo(this.canvas.width, i);
-                    this.ctx.stroke();
-                }
-            }
-
-            startRemoteRendering() {
-                // Simulate remote screen updates
-                this.renderLoop();
-            }
-
-            renderLoop() {
-                if (!this.isConnected) return;
-
-                // Simulate screen updates
-                this.updateRemoteScreen();
-                
-                requestAnimationFrame(() => this.renderLoop());
-            }
-
-            updateRemoteScreen() {
-                // Clear canvas
-                this.ctx.fillStyle = '#f0f0f0';
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-                
-                // Draw simulated desktop
-                this.drawSimulatedDesktop();
-                
-                // Draw mouse cursor
-                if (this.mousePosition) {
-                    this.drawCursor(this.mousePosition.x, this.mousePosition.y);
-                }
-            }
-
-            drawSimulatedDesktop() {
                 // Draw taskbar
-                this.ctx.fillStyle = '#2d3748';
-                this.ctx.fillRect(0, this.canvas.height - 40, this.canvas.width, 40);
+                this.ctx.fillStyle = '#34495e';
+                this.ctx.fillRect(0, this.canvas.height - 50, this.canvas.width, 50);
                 
                 // Draw start button
-                this.ctx.fillStyle = '#667eea';
-                this.ctx.fillRect(10, this.canvas.height - 35, 80, 30);
+                this.ctx.fillStyle = '#3498db';
+                this.ctx.fillRect(10, this.canvas.height - 40, 60, 30);
                 this.ctx.fillStyle = 'white';
                 this.ctx.font = '14px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText('Start', 50, this.canvas.height - 17);
+                this.ctx.fillText('Start', 25, this.canvas.height - 22);
+                
+                // Draw some windows
+                this.drawWindow(100, 100, 400, 300, 'Notepad');
+                this.drawWindow(300, 200, 500, 350, 'File Explorer');
                 
                 // Draw desktop icons
-                this.drawDesktopIcon(50, 50, '🗂️', 'Documents');
-                this.drawDesktopIcon(150, 50, '🖼️', 'Pictures');
-                this.drawDesktopIcon(250, 50, '🎵', 'Music');
-                this.drawDesktopIcon(350, 50, '⚙️', 'Settings');
+                this.drawIcon(50, 50, '📁', 'Documents');
+                this.drawIcon(50, 150, '🖼️', 'Pictures');
+                this.drawIcon(50, 250, '🎵', 'Music');
                 
-                // Draw window
-                this.drawWindow(200, 150, 400, 300, 'My Computer');
-                
-                // Draw current time
-                const now = new Date();
-                this.ctx.fillStyle = 'white';
-                this.ctx.textAlign = 'right';
-                this.ctx.font = '12px Arial';
-                this.ctx.fillText(now.toLocaleTimeString(), this.canvas.width - 10, this.canvas.height - 17);
-            }
-
-            drawDesktopIcon(x, y, icon, label) {
-                // Icon background
-                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-                this.ctx.fillRect(x, y, 60, 60);
-                
-                // Icon
-                this.ctx.font = '24px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText(icon, x + 30, y + 35);
-                
-                // Label
-                this.ctx.fillStyle = 'black';
-                this.ctx.font = '10px Arial';
-                this.ctx.fillText(label, x + 30, y + 75);
+                // Start animation loop
+                this.animateDemo();
             }
 
             drawWindow(x, y, width, height, title) {
-                // Window background
-                this.ctx.fillStyle = 'white';
+                // Window frame
+                this.ctx.fillStyle = '#ecf0f1';
                 this.ctx.fillRect(x, y, width, height);
                 
                 // Title bar
-                this.ctx.fillStyle = '#4a5568';
+                this.ctx.fillStyle = '#3498db';
                 this.ctx.fillRect(x, y, width, 30);
                 
                 // Title text
                 this.ctx.fillStyle = 'white';
-                this.ctx.font = '12px Arial';
-                this.ctx.textAlign = 'left';
+                this.ctx.font = '14px Arial';
                 this.ctx.fillText(title, x + 10, y + 20);
                 
-                // Window controls
-                this.ctx.fillStyle = '#fc8181';
+                // Close button
+                this.ctx.fillStyle = '#e74c3c';
                 this.ctx.fillRect(x + width - 25, y + 5, 20, 20);
-                this.ctx.fillStyle = '#f6e05e';
-                this.ctx.fillRect(x + width - 50, y + 5, 20, 20);
-                this.ctx.fillStyle = '#68d391';
-                this.ctx.fillRect(x + width - 75, y + 5, 20, 20);
+                this.ctx.fillStyle = 'white';
+                this.ctx.fillText('×', x + width - 18, y + 18);
                 
                 // Window content
-                this.ctx.fillStyle = '#f8f9fa';
-                this.ctx.fillRect(x + 1, y + 31, width - 2, height - 32);
-                
-                // Draw some content
-                this.ctx.fillStyle = 'black';
-                this.ctx.font = '11px Arial';
-                this.ctx.fillText('📁 Desktop', x + 10, y + 50);
-                this.ctx.fillText('📁 Documents', x + 10, y + 70);
-                this.ctx.fillText('📁 Downloads', x + 10, y + 90);
-                this.ctx.fillText('📁 Pictures', x + 10, y + 110);
-            }
-
-            drawCursor(x, y) {
                 this.ctx.fillStyle = 'white';
-                this.ctx.strokeStyle = 'black';
-                this.ctx.lineWidth = 1;
-                
-                // Draw cursor arrow
-                this.ctx.beginPath();
-                this.ctx.moveTo(x, y);
-                this.ctx.lineTo(x, y + 16);
-                this.ctx.lineTo(x + 4, y + 12);
-                this.ctx.lineTo(x + 8, y + 16);
-                this.ctx.lineTo(x + 12, y + 12);
-                this.ctx.lineTo(x + 16, y + 16);
-                this.ctx.lineTo(x + 12, y + 8);
-                this.ctx.closePath();
-                this.ctx.fill();
-                this.ctx.stroke();
+                this.ctx.fillRect(x + 5, y + 35, width - 10, height - 40);
             }
 
-            handleMouseDown(e) {
-                if (!this.isConnected) return;
+            drawIcon(x, y, emoji, label) {
+                this.ctx.font = '32px Arial';
+                this.ctx.fillText(emoji, x, y + 25);
+                this.ctx.font = '12px Arial';
+                this.ctx.fillStyle = 'white';
+                this.ctx.fillText(label, x, y + 50);
+            }
+
+            animateDemo() {
+                // Add some subtle animations to make it look alive
+                const animationFrame = () => {
+                    // Simulate cursor movement
+                    const time = Date.now() * 0.001;
+                    const cursorX = 200 + Math.sin(time * 0.5) * 100;
+                    const cursorY = 200 + Math.cos(time * 0.3) * 50;
+                    
+                    // Clear previous cursor
+                    this.createDemoScreen();
+                    
+                    // Draw cursor
+                    this.ctx.fillStyle = 'white';
+                    this.ctx.fillRect(cursorX, cursorY, 12, 20);
+                    this.ctx.fillStyle = 'black';
+                    this.ctx.fillRect(cursorX + 1, cursorY + 1, 10, 18);
+                    
+                    // Update stats
+                    this.updatePerformanceStats();
+                    
+                    if (this.isConnected) {
+                        requestAnimationFrame(animationFrame);
+                    }
+                };
                 
-                const rect = this.canvas.getBoundingClientRect();
-                const x = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-                const y = (e.clientY - rect.top) * (this.canvas.height / rect.height);
-                
-                this.mousePosition = { x, y };
-                
-                if (this.currentTool === 'draw') {
-                    this.isDrawing = true;
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(x, y);
+                animationFrame();
+            }
+
+            async shareScreen() {
+                try {
+                    if (!this.isSharing) {
+                        this.mediaStream = await navigator.mediaDevices.getDisplayMedia({
+                            video: {
+                                mediaSource: 'screen',
+                                width: { ideal: 1920 },
+                                height: { ideal: 1080 },
+                                frameRate: { ideal: 30 }
+                            },
+                            audio: document.getElementById('enableAudio').checked
+                        });
+
+                        this.isSharing = true;
+                        document.getElementById('shareBtn').textContent = 'Stop Sharing';
+                        this.showNotification('Screen sharing started', 'success');
+                        
+                        // Add tracks to peer connection if connected
+                        if (this.peerConnection) {
+                            this.mediaStream.getTracks().forEach(track => {
+                                this.peerConnection.addTrack(track, this.mediaStream);
+                            });
+                        }
+                        
+                        // Handle stream end
+                        this.mediaStream.getVideoTracks()[0].onended = () => {
+                            this.stopSharing();
+                        };
+                        
+                    } else {
+                        this.stopSharing();
+                    }
+                } catch (error) {
+                    this.showNotification('Screen sharing failed: ' + error.message, 'error');
                 }
+            }
+
+            stopSharing() {
+                if (this.mediaStream) {
+                    this.mediaStream.getTracks().forEach(track => track.stop());
+                    this.mediaStream = null;
+                }
+                this.isSharing = false;
+                document.getElementById('shareBtn').textContent = 'Share Screen';
+                this.showNotification('Screen sharing stopped', 'info');
+            }
+
+            handleDataChannelMessage(data) {
+                try {
+                    const message = JSON.parse(data);
+                    
+                    switch (message.type) {
+                        case 'mouse':
+                            this.handleRemoteMouseEvent(message);
+                            break;
+                        case 'keyboard':
+                            this.handleRemoteKeyboardEvent(message);
+                            break;
+                        case 'chat':
+                            this.displayChatMessage(message.text, false);
+                            break;
+                        case 'file':
+                            this.handleFileTransfer(message);
+                            break;
+                        case 'screenshot':
+                            this.handleScreenshotRequest();
+                            break;
+                        default:
+                            console.log('Unknown message type:', message.type);
+                    }
+                } catch (error) {
+                    console.error('Error handling data channel message:', error);
+                }
+            }
+
+            handleRemoteMouseEvent(event) {
+                if (!document.getElementById('enableControl').checked) return;
                 
-                // Send mouse event to remote
-                this.sendRemoteCommand({
-                    type: 'mousedown',
-                    x: x,
-                    y: y,
-                    button: e.button
-                });
+                // In a real implementation, this would control the remote cursor
+                console.log('Remote mouse event:', event);
+                this.showNotification(`Mouse ${event.action} at ${event.x}, ${event.y}`, 'info');
+            }
+
+            handleRemoteKeyboardEvent(event) {
+                if (!document.getElementById('enableControl').checked) return;
+                
+                // In a real implementation, this would send keystrokes to remote system
+                console.log('Remote keyboard event:', event);
+                this.showNotification(`Key ${event.action}: ${event.key}`, 'info');
             }
 
             handleMouseMove(e) {
-                if (!this.isConnected) return;
+                if (!this.isConnected || !this.dataChannel) return;
                 
                 const rect = this.canvas.getBoundingClientRect();
-                const x = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-                const y = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+                const x = ((e.clientX - rect.left) / rect.width) * this.canvas.width;
+                const y = ((e.clientY - rect.top) / rect.height) * this.canvas.height;
                 
-                this.mousePosition = { x, y };
+                this.sendControlMessage({
+                    type: 'mouse',
+                    action: 'move',
+                    x: Math.round(x),
+                    y: Math.round(y)
+                });
+            }
+
+            handleMouseDown(e) {
+                if (!this.isConnected || !this.dataChannel) return;
                 
-                if (this.isDrawing && this.currentTool === 'draw') {
-                    this.ctx.strokeStyle = '#667eea';
-                    this.ctx.lineWidth = 2;
-                    this.ctx.lineTo(x, y);
-                    this.ctx.stroke();
-                }
+                const rect = this.canvas.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * this.canvas.width;
+                const y = ((e.clientY - rect.top) / rect.height) * this.canvas.height;
                 
-                // Send mouse move to remote
-                this.sendRemoteCommand({
-                    type: 'mousemove',
-                    x: x,
-                    y: y
+                this.sendControlMessage({
+                    type: 'mouse',
+                    action: 'down',
+                    button: e.button,
+                    x: Math.round(x),
+                    y: Math.round(y)
                 });
             }
 
             handleMouseUp(e) {
-                if (!this.isConnected) return;
-                
-                this.isDrawing = false;
-                
-                // Send mouse up to remote
-                this.sendRemoteCommand({
-                    type: 'mouseup',
-                    x: this.mousePosition.x,
-                    y: this.mousePosition.y,
-                    button: e.button
-                });
-            }
-
-            handleClick(e) {
-                if (!this.isConnected) return;
+                if (!this.isConnected || !this.dataChannel) return;
                 
                 const rect = this.canvas.getBoundingClientRect();
-                const x = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-                const y = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+                const x = ((e.clientX - rect.left) / rect.width) * this.canvas.width;
+                const y = ((e.clientY - rect.top) / rect.height) * this.canvas.height;
                 
-                // Send click to remote
-                this.sendRemoteCommand({
-                    type: 'click',
-                    x: x,
-                    y: y,
-                    button: e.button
+                this.sendControlMessage({
+                    type: 'mouse',
+                    action: 'up',
+                    button: e.button,
+                    x: Math.round(x),
+                    y: Math.round(y)
                 });
-                
-                // Visual feedback
-                this.showClickEffect(x, y);
             }
 
-            showClickEffect(x, y) {
-                const originalFillStyle = this.ctx.fillStyle;
-                this.ctx.fillStyle = 'rgba(102, 126, 234, 0.5)';
-                this.ctx.beginPath();
-                this.ctx.arc(x, y, 10, 0, 2 * Math.PI);
-                this.ctx.fill();
+            handleMouseWheel(e) {
+                if (!this.isConnected || !this.dataChannel) return;
                 
-                setTimeout(() => {
-                    this.ctx.fillStyle = originalFillStyle;
-                    this.updateRemoteScreen();
-                }, 200);
+                e.preventDefault();
+                this.sendControlMessage({
+                    type: 'mouse',
+                    action: 'wheel',
+                    deltaX: e.deltaX,
+                    deltaY: e.deltaY
+                });
             }
 
-            handleKeyPress(e) {
-                if (!this.isConnected) return;
+            handleKeyDown(e) {
+                if (!this.isConnected || !this.dataChannel) return;
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
                 
-                // Send key press to remote
-                this.sendRemoteCommand({
-                    type: 'keypress',
+                e.preventDefault();
+                this.sendControlMessage({
+                    type: 'keyboard',
+                    action: 'down',
                     key: e.key,
                     code: e.code,
                     ctrlKey: e.ctrlKey,
                     altKey: e.altKey,
-                    shiftKey: e.shiftKey
+                    shiftKey: e.shiftKey,
+                    metaKey: e.metaKey
                 });
-                
-                // Prevent default for certain keys
-                if (e.key === 'Tab' || e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
-                    e.preventDefault();
-                }
             }
 
-            switchTool(tool) {
-                this.currentTool = tool;
+            handleKeyUp(e) {
+                if (!this.isConnected || !this.dataChannel) return;
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
                 
-                // Update active tool button
-                document.querySelectorAll('.tool-btn').forEach(btn => {
-                    btn.classList.remove('active');
+                e.preventDefault();
+                this.sendControlMessage({
+                    type: 'keyboard',
+                    action: 'up',
+                    key: e.key,
+                    code: e.code
                 });
-                document.getElementById(`${tool}-tool`).classList.add('active');
-                
-                // Update cursor style
-                const canvas = this.canvas;
-                switch (tool) {
-                    case 'mouse':
-                        canvas.style.cursor = 'default';
-                        break;
-                    case 'keyboard':
-                        canvas.style.cursor = 'text';
-                        break;
-                    case 'draw':
-                        canvas.style.cursor = 'crosshair';
-                        break;
-                    default:
-                        canvas.style.cursor = 'default';
-                }
             }
 
-            sendRemoteCommand(command) {
+            sendControlMessage(message) {
                 if (this.dataChannel && this.dataChannel.readyState === 'open') {
-                    this.dataChannel.send(JSON.stringify(command));
-                } else {
-                    // Simulate command processing for demo
-                    console.log('Remote command:', command);
+                    this.dataChannel.send(JSON.stringify(message));
                 }
             }
 
-            handleRemoteMessage(message) {
-                switch (message.type) {
-                    case 'chat':
-                        this.addChatMessage(message.text, false);
-                        break;
-                    case 'file':
-                        this.handleFileTransfer(message);
-                        break;
-                    case 'screen':
-                        this.updateScreenData(message.data);
-                        break;
-                    default:
-                        console.log('Unknown message type:', message.type);
+            sendChatMessage() {
+                const input = document.getElementById('chatInput');
+                const message = input.value.trim();
+                
+                if (!message || !this.isConnected) return;
+                
+                this.displayChatMessage(message, true);
+                
+                if (this.dataChannel && this.dataChannel.readyState === 'open') {
+                    this.dataChannel.send(JSON.stringify({
+                        type: 'chat',
+                        text: message,
+                        timestamp: Date.now()
+                    }));
                 }
+                
+                input.value = '';
             }
 
-            handleFilesDrop(files) {
-                Array.from(files).forEach(file => {
-                    this.transferFile(file);
+            displayChatMessage(text, isSent) {
+                const messagesContainer = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-message ${isSent ? 'sent' : 'received'}`;
+                messageDiv.textContent = text;
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            handleFileSelection(files) {
+                this.files = Array.from(files);
+                this.updateFileList();
+                document.getElementById('sendFilesBtn').disabled = this.files.length === 0;
+            }
+
+            updateFileList() {
+                const fileList = document.getElementById('fileList');
+                fileList.innerHTML = '';
+                
+                this.files.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `
+                        <span>${file.name} (${this.formatFileSize(file.size)})</span>
+                        <button onclick="app.removeFile(${index})" style="background: none; border: none; color: #e74c3c; cursor: pointer;">×</button>
+                    `;
+                    fileList.appendChild(fileItem);
                 });
             }
 
-            async transferFile(file) {
-                const fileId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                
-                // Add to file list
-                this.addFileToList(file, fileId);
-                
-                // Show progress
-                const progressBar = document.getElementById('transfer-progress');
-                const progressFill = document.getElementById('progress-fill');
-                progressBar.style.display = 'block';
-                
-                // Simulate file transfer
-                let progress = 0;
-                const interval = setInterval(() => {
-                    progress += Math.random() * 10;
-                    if (progress >= 100) {
-                        progress = 100;
-                        clearInterval(interval);
-                        setTimeout(() => {
-                            progressBar.style.display = 'none';
-                        }, 1000);
-                    }
-                    progressFill.style.width = progress + '%';
-                }, 100);
-                
-                // Simulate sending file data
-                if (this.dataChannel && this.dataChannel.readyState === 'open') {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        this.sendRemoteCommand({
-                            type: 'file',
-                            name: file.name,
-                            size: file.size,
-                            data: e.target.result,
-                            id: fileId
-                        });
-                    };
-                    reader.readAsArrayBuffer(file);
-                }
-            }
-
-            addFileToList(file, fileId) {
-                const fileList = document.getElementById('file-list');
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                fileItem.innerHTML = `
-                    <div>
-                        <div style="font-weight: 600;">${file.name}</div>
-                        <div style="font-size: 0.8rem; color: #718096;">${this.formatFileSize(file.size)}</div>
-                    </div>
-                    <div style="color: #667eea;">Transferring...</div>
-                `;
-                fileList.appendChild(fileItem);
-                
-                // Update status after transfer
-                setTimeout(() => {
-                    fileItem.querySelector('div:last-child').textContent = 'Completed';
-                    fileItem.querySelector('div:last-child').style.color = '#68d391';
-                }, 3000);
+            removeFile(index) {
+                this.files.splice(index, 1);
+                this.updateFileList();
+                document.getElementById('sendFilesBtn').disabled = this.files.length === 0;
             }
 
             formatFileSize(bytes) {
@@ -1247,254 +1095,405 @@
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
             }
 
-            sendChatMessage() {
-                const input = document.getElementById('chat-input');
-                const message = input.value.trim();
+            async sendFiles() {
+                if (!this.isConnected || this.files.length === 0) return;
                 
-                if (!message) return;
+                for (const file of this.files) {
+                    await this.sendFile(file);
+                }
                 
-                // Add to chat
-                this.addChatMessage(message, true);
-                
-                // Send to remote
-                this.sendRemoteCommand({
-                    type: 'chat',
-                    text: message
-                });
-                
-                input.value = '';
+                this.files = [];
+                this.updateFileList();
+                this.showNotification('Files sent successfully', 'success');
             }
 
-            addChatMessage(text, sent) {
-                const chatMessages = document.getElementById('chat-messages');
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `chat-message ${sent ? 'sent' : 'received'}`;
-                messageDiv.textContent = text;
-                chatMessages.appendChild(messageDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+            async sendFile(file) {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const fileData = {
+                            type: 'file',
+                            name: file.name,
+                            size: file.size,
+                            data: e.target.result,
+                            timestamp: Date.now()
+                        };
+                        
+                        if (this.dataChannel && this.dataChannel.readyState === 'open') {
+                            this.dataChannel.send(JSON.stringify(fileData));
+                        }
+                        resolve();
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            handleFileTransfer(fileMessage) {
+                // Create download link
+                const link = document.createElement('a');
+                link.href = fileMessage.data;
+                link.download = fileMessage.name;
+                link.click();
+                
+                this.showNotification(`Received file: ${fileMessage.name}`, 'success');
             }
 
             takeScreenshot() {
                 const link = document.createElement('a');
-                link.download = 'remote-screenshot.png';
+                link.download = `screenshot_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
                 link.href = this.canvas.toDataURL();
                 link.click();
                 
-                // Show notification
-                this.showNotification('Screenshot saved!');
+                this.showNotification('Screenshot saved', 'success');
             }
 
             toggleFullscreen() {
-                const screen = document.getElementById('client-screen');
+                const container = document.getElementById('screenContainer');
                 
-                if (document.fullscreenElement) {
-                    document.exitFullscreen();
+                if (!document.fullscreenElement) {
+                    container.requestFullscreen().then(() => {
+                        document.getElementById('fullscreenBtn').classList.add('active');
+                    });
                 } else {
-                    screen.requestFullscreen().catch(err => {
-                        console.log('Fullscreen error:', err);
+                    document.exitFullscreen().then(() => {
+                        document.getElementById('fullscreenBtn').classList.remove('active');
                     });
                 }
             }
 
-            minimizeScreen() {
-                const screen = document.getElementById('client-screen');
-                screen.style.transform = 'scale(0.8)';
-                screen.style.transition = 'transform 0.3s ease';
+            toggleChat() {
+                const chatPanel = document.getElementById('chatPanel');
+                this.chatVisible = !this.chatVisible;
                 
-                setTimeout(() => {
-                    screen.style.transform = 'scale(1)';
-                }, 300);
+                if (this.chatVisible) {
+                    chatPanel.classList.remove('hidden');
+                } else {
+                    chatPanel.classList.add('hidden');
+                }
                 
-                this.showNotification('Screen minimized');
+                document.getElementById('chatToggle').classList.toggle('active', this.chatVisible);
             }
 
-            maximizeScreen() {
-                const screen = document.getElementById('client-screen');
-                screen.style.transform = 'scale(1.05)';
-                screen.style.transition = 'transform 0.3s ease';
-                
-                setTimeout(() => {
-                    screen.style.transform = 'scale(1)';
-                }, 300);
-                
-                this.showNotification('Screen maximized');
+            toggleRecording() {
+                if (!this.mediaRecorder) {
+                    this.startRecording();
+                } else {
+                    this.stopRecording();
+                }
             }
 
-            showNotification(message) {
-                const notification = document.createElement('div');
-                notification.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: #667eea;
-                    color: white;
-                    padding: 1rem 2rem;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                    z-index: 1000;
-                    font-weight: 600;
-                    animation: slideIn 0.3s ease;
-                `;
-                notification.textContent = message;
-                document.body.appendChild(notification);
+            startRecording() {
+                const stream = this.canvas.captureStream(30);
+                this.mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: 'video/webm;codecs=vp9'
+                });
                 
-                setTimeout(() => {
-                    notification.style.animation = 'slideOut 0.3s ease';
-                    setTimeout(() => {
-                        document.body.removeChild(notification);
-                    }, 300);
-                }, 3000);
+                this.recordedChunks = [];
+                
+                this.mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        this.recordedChunks.push(event.data);
+                    }
+                };
+                
+                this.mediaRecorder.onstop = () => {
+                    const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `recording_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
+                    link.click();
+                    
+                    this.showNotification('Recording saved', 'success');
+                };
+                
+                this.mediaRecorder.start();
+                document.getElementById('recordBtn').classList.add('active');
+                document.getElementById('recordBtn').textContent = '⏹️';
+                this.showNotification('Recording started', 'info');
+            }
+
+            stopRecording() {
+                if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+                    this.mediaRecorder.stop();
+                }
+                
+                this.mediaRecorder = null;
+                document.getElementById('recordBtn').classList.remove('active');
+                document.getElementById('recordBtn').textContent = '🔴';
+                this.showNotification('Recording stopped', 'info');
+            }
+
+            updateQuality(quality) {
+                // Adjust canvas rendering quality
+                const scale = quality / 10;
+                this.canvas.style.imageRendering = scale > 0.7 ? 'auto' : 'pixelated';
+                
+                // In a real implementation, this would adjust stream quality
+                console.log('Quality updated to:', quality);
             }
 
             startPerformanceMonitoring() {
                 setInterval(() => {
-                    this.updatePerformanceMetrics();
+                    this.updatePerformanceStats();
                 }, 1000);
             }
 
-            updatePerformanceMetrics() {
-                // Update FPS counter
-                const fpsCounter = document.getElementById('fps-counter');
-                if (fpsCounter) {
-                    fpsCounter.textContent = Math.floor(Math.random() * 5) + 28; // 28-32 FPS
+            updatePerformanceStats() {
+                const now = Date.now();
+                const deltaTime = now - this.stats.lastTime;
+                
+                if (deltaTime >= 1000) {
+                    this.stats.fps = Math.round((this.stats.frameCount * 1000) / deltaTime);
+                    this.stats.frameCount = 0;
+                    this.stats.lastTime = now;
+                    
+                    // Simulate latency and bandwidth
+                    this.stats.latency = Math.round(50 + Math.random() * 100);
+                    this.stats.bandwidth = Math.round(500 + Math.random() * 1000);
+                    
+                    document.getElementById('performanceStats').textContent = 
+                        `FPS: ${this.stats.fps} | Latency: ${this.stats.latency} ms | Bandwidth: ${this.stats.bandwidth} KB/s`;
                 }
                 
-                // Update bandwidth
-                const bandwidthUsage = document.getElementById('bandwidth-usage');
-                if (bandwidthUsage) {
-                    const bandwidth = (Math.random() * 2 + 0.5).toFixed(1);
-                    bandwidthUsage.textContent = bandwidth + ' MB/s';
-                }
+                this.stats.frameCount++;
+            }
+
+            updateStatus(status, connected) {
+                document.getElementById('statusText').textContent = status;
+                const statusDot = document.getElementById('statusDot');
                 
-                // Update latency
-                const latencyStatus = document.getElementById('latency-status');
-                if (latencyStatus) {
-                    const latency = Math.floor(Math.random() * 20) + 15; // 15-35ms
-                    latencyStatus.textContent = latency + 'ms';
-                }
-                
-                // Update client count for host
-                const clientCount = document.getElementById('client-count');
-                if (clientCount && this.isHosting) {
-                    clientCount.textContent = this.isConnected ? '1' : '0';
+                if (connected) {
+                    statusDot.classList.add('connected');
+                    this.isConnected = true;
+                } else {
+                    statusDot.classList.remove('connected');
+                    this.isConnected = false;
                 }
             }
 
-            updateStatus(message) {
-                console.log('Status:', message);
-                // Could add a status display element
-            }
-
-            startWebRTCSignaling() {
-                // In production, this would connect to a signaling server
-                console.log('WebRTC signaling started for session:', this.sessionId);
-            }
-
-            closeAllConnections() {
-                this.connections.forEach(connection => {
-                    connection.close();
-                });
-                this.connections.clear();
-            }
-
-            handleRemoteStream(stream) {
-                // Handle incoming video stream
-                const video = document.createElement('video');
-                video.srcObject = stream;
-                video.autoplay = true;
-                video.muted = true;
-                
-                // Draw video frames to canvas
-                video.addEventListener('loadedmetadata', () => {
-                    this.drawVideoToCanvas(video);
+            copyToClipboard() {
+                navigator.clipboard.writeText(this.connectionId).then(() => {
+                    this.showNotification('Connection ID copied to clipboard', 'success');
+                }).catch(() => {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = this.connectionId;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    this.showNotification('Connection ID copied to clipboard', 'success');
                 });
             }
 
-            drawVideoToCanvas(video) {
-                const drawFrame = () => {
-                    if (this.isConnected && !video.paused) {
-                        this.ctx.drawImage(video, 0, 0, this.canvas.width, this.canvas.height);
-                        requestAnimationFrame(drawFrame);
-                    }
-                };
-                drawFrame();
+            showNotification(message, type = 'info') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = `notification ${type}`;
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+
+            disconnect() {
+                if (this.peerConnection) {
+                    this.peerConnection.close();
+                    this.peerConnection = null;
+                }
+                
+                if (this.dataChannel) {
+                    this.dataChannel.close();
+                    this.dataChannel = null;
+                }
+                
+                this.stopSharing();
+                this.updateStatus('Disconnected', false);
+                document.getElementById('connectionStatus').style.display = 'block';
+                this.showNotification('Disconnected', 'info');
+            }
+
+            // Cleanup when page unloads
+            cleanup() {
+                this.disconnect();
+                if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+                    this.mediaRecorder.stop();
+                }
             }
         }
-
-        // Add CSS animations
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
 
         // Initialize the application
         const app = new RemoteDesktopApp();
 
-        // Add some demo chat messages
-        setTimeout(() => {
-            if (app.isConnected) {
-                app.addChatMessage('Welcome to Remote Desktop Pro!', false);
-                app.addChatMessage('Connection established successfully.', false);
-            }
-        }, 5000);
+        // Handle page unload
+        window.addEventListener('beforeunload', () => {
+            app.cleanup();
+        });
 
-        // Simulate periodic updates
-        setInterval(() => {
-            if (app.isConnected) {
-                app.updateRemoteScreen();
-            }
-        }, 100);
-
-        // Handle visibility change
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                console.log('App minimized');
-            } else {
-                console.log('App restored');
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            // Adjust canvas size if needed
+            const container = document.getElementById('screenContainer');
+            const rect = container.getBoundingClientRect();
+            
+            if (app.canvas.width > rect.width || app.canvas.height > rect.height) {
+                const scale = Math.min(rect.width / app.canvas.width, rect.height / app.canvas.height);
+                app.canvas.style.transform = `scale(${scale})`;
+                app.canvas.style.transformOrigin = 'top left';
             }
         });
 
-        // Handle beforeunload
-        window.addEventListener('beforeunload', (e) => {
-            if (app.isHosting || app.isConnected) {
-                e.preventDefault();
-                e.returnValue = 'You have an active remote desktop session. Are you sure you want to leave?';
-            }
-        });
-
-        // Add keyboard shortcuts
+        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            // Ctrl+Alt+F for fullscreen
-            if (e.ctrlKey && e.altKey && e.key === 'f') {
+            // Ctrl+Shift+C to copy connection ID
+            if (e.ctrlKey && e.shiftKey && e.key === 'C') {
                 e.preventDefault();
-                app.toggleFullscreen();
+                app.copyToClipboard();
             }
             
-            // Ctrl+Alt+S for screenshot
-            if (e.ctrlKey && e.altKey && e.key === 's') {
+            // Ctrl+Shift+S to take screenshot
+            if (e.ctrlKey && e.shiftKey && e.key === 'S') {
                 e.preventDefault();
                 app.takeScreenshot();
             }
             
-            // Ctrl+Alt+D to disconnect
-            if (e.ctrlKey && e.altKey && e.key === 'd') {
+            // Ctrl+Shift+R to toggle recording
+            if (e.ctrlKey && e.shiftKey && e.key === 'R') {
                 e.preventDefault();
-                if (app.isConnected) {
-                    app.disconnect();
-                }
+                app.toggleRecording();
+            }
+            
+            // Escape to exit fullscreen
+            if (e.key === 'Escape' && document.fullscreenElement) {
+                document.exitFullscreen();
             }
         });
 
-        console.log('Remote Desktop Pro initialized successfully!');
+        // Context menu for additional options
+        document.getElementById('remoteScreen').addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            
+            // Create custom context menu
+            const contextMenu = document.createElement('div');
+            contextMenu.style.cssText = `
+                position: fixed;
+                top: ${e.clientY}px;
+                left: ${e.clientX}px;
+                background: white;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                padding: 8px 0;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                z-index: 1000;
+                font-size: 14px;
+                min-width: 150px;
+            `;
+            
+            const menuItems = [
+                { text: 'Take Screenshot', action: () => app.takeScreenshot() },
+                { text: 'Toggle Fullscreen', action: () => app.toggleFullscreen() },
+                { text: 'Start Recording', action: () => app.toggleRecording() },
+                { text: 'Disconnect', action: () => app.disconnect() }
+            ];
+            
+            menuItems.forEach(item => {
+                const menuItem = document.createElement('div');
+                menuItem.textContent = item.text;
+                menuItem.style.cssText = `
+                    padding: 8px 16px;
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                `;
+                
+                menuItem.addEventListener('mouseenter', () => {
+                    menuItem.style.backgroundColor = '#f0f0f0';
+                });
+                
+                menuItem.addEventListener('mouseleave', () => {
+                    menuItem.style.backgroundColor = 'transparent';
+                });
+                
+                menuItem.addEventListener('click', () => {
+                    item.action();
+                    document.body.removeChild(contextMenu);
+                });
+                
+                contextMenu.appendChild(menuItem);
+            });
+            
+            document.body.appendChild(contextMenu);
+            
+            // Remove context menu when clicking elsewhere
+            const removeMenu = (event) => {
+                if (!contextMenu.contains(event.target)) {
+                    document.body.removeChild(contextMenu);
+                    document.removeEventListener('click', removeMenu);
+                }
+            };
+            
+            setTimeout(() => {
+                document.addEventListener('click', removeMenu);
+            }, 10);
+        });
+
+        // Touch support for mobile devices
+        if ('ontouchstart' in window) {
+            let touchStartTime = 0;
+            
+            app.canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                touchStartTime = Date.now();
+                
+                const touch = e.touches[0];
+                const rect = app.canvas.getBoundingClientRect();
+                const x = ((touch.clientX - rect.left) / rect.width) * app.canvas.width;
+                const y = ((touch.clientY - rect.top) / rect.height) * app.canvas.height;
+                
+                app.sendControlMessage({
+                    type: 'mouse',
+                    action: 'down',
+                    button: 0,
+                    x: Math.round(x),
+                    y: Math.round(y)
+                });
+            });
+            
+            app.canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                const touchDuration = Date.now() - touchStartTime;
+                
+                const touch = e.changedTouches[0];
+                const rect = app.canvas.getBoundingClientRect();
+                const x = ((touch.clientX - rect.left) / rect.width) * app.canvas.width;
+                const y = ((touch.clientY - rect.top) / rect.height) * app.canvas.height;
+                
+                app.sendControlMessage({
+                    type: 'mouse',
+                    action: 'up',
+                    button: touchDuration > 500 ? 2 : 0, // Right click for long press
+                    x: Math.round(x),
+                    y: Math.round(y)
+                });
+            });
+            
+            app.canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                
+                const touch = e.touches[0];
+                const rect = app.canvas.getBoundingClientRect();
+                const x = ((touch.clientX - rect.left) / rect.width) * app.canvas.width;
+                const y = ((touch.clientY - rect.top) / rect.height) * app.canvas.height;
+                
+                app.sendControlMessage({
+                    type: 'mouse',
+                    action: 'move',
+                    x: Math.round(x),
+                    y: Math.round(y)
+                });
+            });
+        }
     </script>
 </body>
 </html>
