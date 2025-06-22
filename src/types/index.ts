@@ -1,47 +1,30 @@
-export interface Connection {
+export interface ConnectionState {
+  status: 'disconnected' | 'connecting' | 'connected' | 'error';
+  sessionId: string;
+  remoteSessionId: string;
+  localStream: MediaStream | null;
+  remoteStream: MediaStream | null;
+}
+
+export interface ChatMessage {
   id: string;
-  status: 'connecting' | 'connected' | 'disconnected' | 'error';
-  isHost: boolean;
-  remoteId?: string;
-  startTime?: Date;
-  quality?: 'low' | 'medium' | 'high';
-  latency?: number;
+  text: string;
+  timestamp: Date;
+  sender: 'local' | 'remote';
 }
 
-export interface ConnectionMessage {
-  type: 'offer' | 'answer' | 'ice-candidate' | 'connect' | 'disconnect' | 'mouse' | 'keyboard' | 'control';
-  data: any;
-  from: string;
-  to: string;
-  timestamp: number;
+export interface FileTransfer {
+  id: string;
+  name: string;
+  size: number;
+  progress: number;
+  status: 'pending' | 'transferring' | 'completed' | 'error';
+  direction: 'sending' | 'receiving';
 }
 
-export interface ScreenData {
-  width: number;
-  height: number;
-  stream?: MediaStream;
-}
-
-export interface MouseEvent {
-  type: 'click' | 'move' | 'scroll' | 'drag';
-  x: number;
-  y: number;
-  button?: number;
-  deltaX?: number;
-  deltaY?: number;
-}
-
-export interface KeyboardEvent {
-  type: 'keydown' | 'keyup' | 'keypress';
-  key: string;
-  code: string;
-  ctrlKey: boolean;
-  altKey: boolean;
-  shiftKey: boolean;
-  metaKey: boolean;
-}
-
-export interface ControlMessage {
-  type: 'request-control' | 'grant-control' | 'deny-control' | 'release-control';
-  data?: any;
+export interface Settings {
+  quality: 'low' | 'medium' | 'high';
+  audioEnabled: boolean;
+  autoConnect: boolean;
+  showPointer: boolean;
 }
