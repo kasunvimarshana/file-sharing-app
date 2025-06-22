@@ -6,23 +6,27 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ⚡️ Create HTTP + WebSocket Server
 const app = express();
 const PORT = process.env.PORT || 8080;
 
 app.use(express.static(path.join(__dirname, '../app')));
 
 const server = app.listen(PORT, () => {
-  console.log(`✅ App available at http://localhost:${PORT}`);
+  console.log(`✅ Server running at http://localhost:${PORT}`);
 });
 
-// ⚡️ WebSocket Signaling
 const wss = new WebSocketServer({ server });
 const clients = new Map();
 
 wss.on('connection', (ws) => {
   ws.on('message', (message) => {
-    const data = JSON.parse(message.toString());
+    let data;
+    try {
+      data = JSON.parse(message.toString());
+    } catch {
+      console.warn('Invalid JSON');
+      return;
+    }
 
     if (data.register) {
       clients.set(data.register, ws);
@@ -34,6 +38,16 @@ wss.on('connection', (ws) => {
       clients.get(data.to).send(JSON.stringify(data));
     }
   });
+
+  ws.on('close', () => {
+    for (const [id, clientWs] of clients.entries()) {
+      if (clientWs === ws) {
+        clients.delete(id);
+        console.log(`[SIGNALING] Client disconnected: ${id}`);
+        break;
+      }
+    }
+  });
 });
 
-console.log(`✅ Signaling service running as part of HTTP server...`);
+console.log('✅ WebSocket signaling server running...');
